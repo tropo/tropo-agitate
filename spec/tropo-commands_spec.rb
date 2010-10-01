@@ -17,6 +17,10 @@ describe "TropoAGI::TropoCommands" do
     @tropo_commands = TropoAGI::Commands.new(CurrentCall.new, @tropo_agi.tropo_agi_config)
   end
   
+  it "should return the asterisk sound files" do
+    @tropo_commands.asterisk_sound_files.should == { "tt-monkeys" => "tt-monkeys.gsm" }
+  end
+  
   it "should return a valid string on answer" do
     @tropo_commands.answer.should == "200 result=0\n"
   end
@@ -26,8 +30,12 @@ describe "TropoAGI::TropoCommands" do
   end
   
   it "should return a valid recognition on ask" do
+    hash = { 'interpretation' => "94070", 'concept' => "zipcode", 'confidence' => "10.0", 'tag' => nil }
     options = { :command => "ask", :action => "exec", :args => { "timeout" => 3, "prompt" => "hi!"} }
-    @tropo_commands.ask(options).should == "200 result={\"interpretation\":\"94070\",\"concept\":\"zipcode\",\"confidence\":\"10.0\",\"tag\":null}\n"
+    result = @tropo_commands.ask(options)
+    elements = result.split('=')
+    elements[0].should == '200 result'
+    JSON.parse(elements[1]).should == hash
   end
   
   it "should return a valid agi response on playback" do

@@ -507,15 +507,15 @@ class TropoAGI
       log_error(this_method, e)
     end
     
-    private
-    
     ##
     # Builds a hash of the available Asterisk Sound files from a JSON file stored on Tropo
     #
     # @return [Hash] all of the sound files available to be played back
-    def astersk_sound_files
+    def asterisk_sound_files
       JSON.parse(Net::HTTP.get(URI.parse(@tropo_agi_config['asterisk']['sounds']['available_files'])))
     end
+    
+    private
     
     ##
     # Returns the URI location of the Asterisk sound file if it is available
