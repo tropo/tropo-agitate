@@ -53,7 +53,7 @@ Instructions may be found [here](https://www.tropo.com/docs/scripting/quickstart
 Supported Adhearsion & AGI Methods
 ----------------------------------
 
-Refer to the wiki [Supported Adhearsion and Asterisk Gateway Interface (AGI) Commands](https://github.com/tropo/tropo-agitate/wiki/Supported-Adhearsion-and-Asterisk-Gateway-Interface-(AGI)-Commands) page.
+Refer to the wiki [Supported Adhearsion and Asterisk Gateway Interface (AGI) Commands](http://github.com/tropo/tropo-agitate/wiki/Supported-Adhearsion-&-AGI-Methods) page.
 
 Asterisk Sound Files Available
 ------------------------------
