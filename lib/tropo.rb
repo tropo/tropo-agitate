@@ -1,3 +1,34 @@
+# Here for testing outside of Tropo, we need to mock the return on ask
+class AskResponse
+  class Choice
+    def concept
+      'zipcode'
+    end
+
+    def confidence
+      '10.0'
+    end
+
+    def interpretation
+      '94070'
+    end
+    
+    def tag
+      nil
+    end
+  end
+  
+  attr_reader :choice
+  
+  def initialize
+    @choice = Choice.new
+  end
+  
+  def value
+    '94070'
+  end
+end
+
 # Here for testing outside of Tropo, so we mock the $currentCall object
 class CurrentCall
   attr_reader :value
@@ -10,7 +41,7 @@ class CurrentCall
   end
   
   def answer; 'answer response: answered'; end
-  def ask(text, options); 'ask reponse: ' + text; self; end
+  def ask(text, options); AskResponse.new; end
   def callerID; '4155551212'; end
   def callerName; 'Jason Goecke'; end
   def call(text, options); 'call response: ' + text.inspect; p options; end
@@ -23,7 +54,7 @@ class CurrentCall
   def say(text, options); 'say response: text'; options; end
   def setHeader(header, value); @headers[header] = value; end
   def sipgetheader(calleridname); calleridname; end
-  def startCallRecording(uri, options); uri + options.inspect; end
+  def startCallRecording(uri, options); nil; end
   def state; 'RINGING'; end
   def transfer(foo, bar); true; end
 end
@@ -45,3 +76,13 @@ class CurrentApp
   end
 end
 
+class IncomingCall
+  include Java
+  
+  def getHeaderMap
+    map = java.util.HashMap.new
+    map.put "kermit", "green"
+    map.put "bigbird", "yellow"
+    map
+  end
+end

@@ -513,7 +513,7 @@ class TropoAGI
     # Builds a hash of the available Asterisk Sound files from a JSON file stored on Tropo
     #
     # @return [Hash] all of the sound files available to be played back
-    def asterisk_sound_files
+    def astersk_sound_files
       JSON.parse(Net::HTTP.get(URI.parse(@tropo_agi_config['asterisk']['sounds']['available_files'])))
     end
     
@@ -723,7 +723,7 @@ class TropoAGI
     
     # Grab the headers and then push them in the initial message
     headers = @commands.getheaders
-    rdnis = 'unkown'
+    rdnis = 'unknown'
     rdnis = headers['x-sbc-diversion'] if headers['x-sbc-diversion']
     
 <<-MSG

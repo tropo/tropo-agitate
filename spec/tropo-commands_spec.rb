@@ -13,7 +13,6 @@ describe "TropoAGI::TropoCommands" do
     # Register the hosted JSON file  
     FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json", 
                            :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
-    
     @tropo_agi = TropoAGI.new(@current_call, CurrentApp.new)
     @tropo_commands = TropoAGI::Commands.new(CurrentCall.new, @tropo_agi.tropo_agi_config)
   end
@@ -28,7 +27,7 @@ describe "TropoAGI::TropoCommands" do
   
   it "should return a valid recognition on ask" do
     options = { :command => "ask", :action => "exec", :args => { "timeout" => 3, "prompt" => "hi!"} }
-    @tropo_commands.ask(options).should == "200 result=94070\n"
+    @tropo_commands.ask(options).should == "200 result={\"interpretation\":\"94070\",\"concept\":\"zipcode\",\"confidence\":\"10.0\",\"tag\":null}\n"
   end
   
   it "should return a valid agi response on playback" do

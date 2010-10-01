@@ -1,3 +1,5 @@
+# ALL OF THESE TESTS ARE PENDING, HAVE SOME STRANGENESS WITH EM AND RSPEC
+
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
 describe "TropoAGI" do

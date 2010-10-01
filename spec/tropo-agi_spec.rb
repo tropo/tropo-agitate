@@ -15,6 +15,7 @@ describe "TropoAGI" do
                          :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
                            
     @current_call = CurrentCall.new
+    $incomingCall = IncomingCall.new
     @tropo_agi = TropoAGI.new(@current_call, CurrentApp.new)
   end
   
@@ -33,7 +34,7 @@ agi_channel: TROPO/#{@current_call.id}
 agi_language: en
 agi_type: TROPO
 agi_uniqueid: #{@current_call.id}
-agi_version: tropo-agi
+agi_version: tropo-agi-0.1.0
 agi_callerid: #{@current_call.callerID}
 agi_calleridname: #{@current_call.callerName}
 agi_callingpres: 0
@@ -48,6 +49,7 @@ agi_priority: 1
 agi_enhanced: 0.0
 agi_accountcode: 
 agi_threadid: #{@current_call.id}
+tropo_headers: {\"kermit\":\"green\",\"bigbird\":\"yellow\"}
 
 MSG
     message.should == @initial_message
@@ -127,13 +129,11 @@ MSG
     command = @tropo_agi.execute_command('GET VARIABLE "FOOBAR"')
     command.should == "200 result=1 (green)\n"
     
-    command = @tropo_agi.execute_command('EXEC monitor "{\"method\":\"POST\",\"uri\":\"http://localhost\"}"')
+
+    command = @tropo_agi.execute_command("EXEC monitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
     command.should == "200 result=0\n"
     
-    command = @tropo_agi.execute_command('EXEC mixmonitor "{\"method\":\"POST\",\"uri\":\"http://localhost\"}"')
-    command.should == "200 result=0\n"
-    
-    command = @tropo_agi.execute_command('EXEC sipgetheader "CALLERIDNAME"')
+    command = @tropo_agi.execute_command("EXEC mixmonitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
     command.should == "200 result=0\n"
   end
 end
