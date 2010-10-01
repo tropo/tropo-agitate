@@ -1,4 +1,4 @@
-Tropo AGIitate
+Tropo AGItate
 ==============
 
 TropoAGItate lets you run Asterisk AGI applications on the Tropo cloud communications platform.
@@ -35,15 +35,15 @@ This project allows you to control the Tropo AGI via an Adhearsion dialplan cont
 
 Instructions may be found [here](https://www.tropo.com/docs/scripting/quickstart.htm "Quick Start").
 
-* Set your Tropo app to use the [lib/tropo-agi.rb](https://github.com/tropo/tropo-agi/raw/master/lib/tropo-agi.rb) script
+* Set your Tropo app to use the [lib/tropo-agitate.rb](https://github.com/tropo/tropo-agitate/raw/master/lib/tropo-agitate.rb) script
 
-  * Load the file directly to the Github file location [lib/tropo-agi.rb](https://github.com/tropo/tropo-agi/raw/master/lib/tropo-agi.rb)
-  * Host the 'tropo-agi.rb' yourself and provide a public URL for access 
+  * Load the file directly to the Github file location [lib/tropo-agitate.rb](https://github.com/tropo/tropo-agitate/raw/master/lib/tropo-agitate.rb)
+  * Host the 'tropo-agitate.rb' yourself and provide a public URL for access 
   * Add it to your Tropo FTP/WebDAV account
 
 * Modify the configuration file and post it to your Tropo FTP/WebDAV account
 
-  * First set your configuration settings in the [tropo_agi_config/tropo_agi_config.yml](https://github.com/tropo/tropo-agi/raw/master/tropo_agi_config/tropo_agi_config.yml "tropo_agi_config.yml") file
+  * First set your configuration settings in the [tropo_agi_config/tropo_agi_config.yml](https://github.com/tropo/tropo-agitate/raw/master/tropo_agi_config/tropo_agi_config.yml "tropo_agi_config.yml") file
   * Then upload to your [Tropo FTP/WebDAV](https://www.tropo.com/docs/scripting/tropohosting.htm) account placing in root/www/tropo_agi_config
 
 * Use a SIP client (like Blink for Mac) and dial the SIP Voice account listed under your application, may use Skype too!
@@ -53,12 +53,12 @@ Instructions may be found [here](https://www.tropo.com/docs/scripting/quickstart
 Supported Adhearsion & AGI Methods
 ----------------------------------
 
-Refer to the wiki [Supported Adhearsion and Asterisk Gateway Interface (AGI) Commands](https://github.com/tropo/tropo-agi/wiki/Supported-Adhearsion-and-Asterisk-Gateway-Interface-(AGI)-Commands) page.
+Refer to the wiki [Supported Adhearsion and Asterisk Gateway Interface (AGI) Commands](https://github.com/tropo/tropo-agitate/wiki/Supported-Adhearsion-and-Asterisk-Gateway-Interface-(AGI)-Commands) page.
 
 Asterisk Sound Files Available
 ------------------------------
 
-Refer to the wiki [Asterisk Core Sounds Available](https://github.com/tropo/tropo-agi/wiki/Asterisk-Core-Sounds-Available) page.
+Refer to the wiki [Asterisk Core Sounds Available](https://github.com/tropo/tropo-agitate/wiki/Asterisk-Core-Sounds-Available) page.
 
 Adhearsion Dialplan Examples
 ----------------------------
