@@ -1,0 +1,25 @@
+# Configuration for connecting to your AGI Server
+
+tropo:
+    # The default voice to use for Speech Synthesis/TTS
+    # Refer to: https://www.tropo.com/docs/scripting/say.htm (voice option) for a list of supported voices
+    voice: kate
+    # The default recognizer to use for Speech Recogintion/ASR
+    # Refer to: https://www.tropo.com/docs/scripting/ask.htm (recognizer option) for a list of supported recognizers
+    recognizer: en-us
+    next_sip_uri: sip:9991443146@sip.tropo.com
+    
+agi:
+    # This should be your running AGI Server (Adhearsion, PHPAGI, Asterisk-Java, etc)
+    uri: agi://98.207.5.162:4573/tropo_agi
+    # Used for local testing
+    uri_for_local_tests: agi://localhost:4573/tropo_agi
+
+asterisk:
+    sounds:
+        enabled: true
+        language: en
+        # available_files/base_uri does not need to change, unless you want to pull sound files from your own account
+        # these files are accessible from the Tropo-AGI/49767 account to yours
+        available_files: http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json
+        base_uri: http://hosting.tropo.com/49767/www/audio/asterisk_sounds
