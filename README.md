@@ -1,7 +1,7 @@
-Tropo AGI
-=========
+Tropo AGIitate
+==============
 
-TropoAGI lets you run Asterisk AGI applications on the Tropo cloud communications platform.
+TropoAGItate lets you run Asterisk AGI applications on the Tropo cloud communications platform.
 
 Description
 -----------
