@@ -1,6 +1,6 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 
-describe "TropoAGI" do
+describe "TropoAGItate" do
 
   before(:all) do
     # These tests are all local unit tests
@@ -16,11 +16,11 @@ describe "TropoAGI" do
                            
     @current_call = CurrentCall.new
     $incomingCall = IncomingCall.new
-    @tropo_agi = TropoAGI.new(@current_call, CurrentApp.new)
+    @tropo_agi = TropoAGItate.new(@current_call, CurrentApp.new)
   end
   
-  it "should create a TropoAGI object" do
-    @tropo_agi.instance_of?(TropoAGI).should == true
+  it "should create a TropoAGItate object" do
+    @tropo_agi.instance_of?(TropoAGItate).should == true
   end
   
   it "should create a properly formatted initial message" do

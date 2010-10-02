@@ -72,6 +72,7 @@ class CurrentApp
   end
   
   def baseDir
+    # This is only for testing JT!!!
     'c:\tropo_app_home\49767'
   end
 end

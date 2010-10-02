@@ -19,7 +19,7 @@ end
 #########
 
 # @author Jason Goecke
-class TropoAGI
+class TropoAGItate
   module Helpers
     ##
     # Strips the quotes from a string
@@ -633,12 +633,12 @@ class TropoAGI
   end#end class Commands
   
   ##
-  # Creates a new instance of TropoAGI
+  # Creates a new instance of TropoAGItate
   #
   # @param [Object] the currentCall object of Tropo
   # @param [String] the AGI URI of the AGI server
   # @param [Hash] the configuration details of using/not using the built-in Asterisk Sound files
-  # @return [Object] instance of TropoAGI
+  # @return [Object] instance of TropoAGItate
   def initialize(current_call, current_app)
     @current_call     = current_call
     @current_app      = current_app
@@ -836,7 +836,7 @@ MSG
   rescue => e
     show 'Can not find config file', e
   end
-end#end class TropoAGI 
+end#end class TropoAGItate 
 
 # Are we running as a spec, or is this live?
 if @tropo_testing.nil?
@@ -853,8 +853,8 @@ if @tropo_testing.nil?
   
   # If we have an active call, start running the AGI client
   if $currentCall
-    # Create the instance of TropoAGI with Tropo's currentCall object
-    tropo_agi = TropoAGI.new($currentCall, $currentApp)
+    # Create the instance of TropoAGItate with Tropo's currentCall object
+    tropo_agi = TropoAGItate.new($currentCall, $currentApp)
     # Start sending/receiving AGI commands via the TCP socket
     tropo_agi.run
   else
