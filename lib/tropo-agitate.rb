@@ -242,17 +242,17 @@ class TropoAGItate
     #  - http://www.voip-info.org/wiki/view/Asterisk+cmd+MixMonitor
     # Tropo: https://www.tropo.com/docs/scripting/startcallrecording.htm
     #
-    # @param [Hash] options used to build the say
+    # @param [Hash] options used to build the startCallRecording
     #
     # @return [String] the response in AGI raw form
-    def monitor(options)
+    def monitor(options={})
       @current_call.startCallRecording options[:args]['uri'], options[:args]
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
     alias :mixmonitor :monitor
-    alias :startCallRecording :monitor
+    alias :startcallrecording :monitor
     
     ##
     # Initiates a playback to the Tropo call object for Speech Synthesis/TTS

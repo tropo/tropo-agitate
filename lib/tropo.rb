@@ -54,9 +54,11 @@ class CurrentCall
   def say(text, options); 'say response: text'; options; end
   def setHeader(header, value); @headers[header] = value; end
   def sipgetheader(calleridname); calleridname; end
-  def startCallRecording(uri, options); nil; end
+  def startCallRecording(uri, options); nil ; end
+  def stopCallRecording; nil; end
   def state; 'RINGING'; end
   def transfer(foo, bar); true; end
+  def record(uri, options); true; end
 end
 
 # Here for testing outside of Tropo, so we mock the $currentApp object

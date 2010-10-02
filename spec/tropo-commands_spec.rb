@@ -13,8 +13,8 @@ describe "TropoAGItate::TropoCommands" do
     # Register the hosted JSON file  
     FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json", 
                            :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
-    @tropo_agi = TropoAGItate.new(@current_call, CurrentApp.new)
-    @tropo_commands = TropoAGItate::Commands.new(CurrentCall.new, @tropo_agi.tropo_agi_config)
+    @tropo_agitate = TropoAGItate.new(@current_call, CurrentApp.new)
+    @tropo_commands = TropoAGItate::Commands.new(CurrentCall.new, @tropo_agitate.tropo_agi_config)
   end
   
   it "should return the asterisk sound files" do
@@ -75,5 +75,26 @@ describe "TropoAGItate::TropoCommands" do
   it "should return a valid string when a meetme is requested" do
     options = { :args => ["\"1234\"|\"d\"|\"\""] }
     @tropo_commands.meetme(options).should == "200 result=0\n"
+  end
+  
+  it "should return a valid string when we request a record" do
+    options ={ :args => ['"http://tropo-audiofiles-to-s3.heroku.com/post_audio_to_s3?filename=voicemail" "mp3" "#" "120000" "0" "BEEP" "s=5"'] }
+    @tropo_commands.record(options).should == "200 result=0\n"
+  end
+  
+  it "should return a valid string when we reqeust a monitor/mixmonitor/startcallrecording" do
+    options = { :args => { "uri"                 => "http://localhost/post_audio_to_s3?filename=voicemail.mp3",
+                           "method"              => "POST",
+                           "format"              => "mp3",
+                           "transcriptionOutURI" => "mailto:jsgoecke@voxeo.com"} }
+    @tropo_commands.monitor(options).should == "200 result=0\n"
+    @tropo_commands.mixmonitor(options).should == "200 result=0\n"
+    @tropo_commands.startcallrecording(options).should == "200 result=0\n"
+  end
+  
+  it "should return a valid string when we request a stopcallrecording" do
+    @tropo_commands.stopcallrecording.should == "200 result=0\n"
+    @tropo_commands.monitor_stop.should == "200 result=0\n"
+    @tropo_commands.mixmonitor_stop.should == "200 result=0\n"
   end
 end
