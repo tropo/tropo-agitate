@@ -106,7 +106,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def ask(options={})
-      options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args][:recognizer].nil?
+      options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args]['recognizer'].nil?
+      options[:args][:voice] = @tropo_agi_config['tropo']['voice'] if options[:args]['voice'].nil?
       response = @current_call.ask options[:args]['prompt'], options[:args]
       log "=====> #{response.value} <===="
       if response.value == 'NO_SPEECH' || response.value == 'NO_MATCH'
