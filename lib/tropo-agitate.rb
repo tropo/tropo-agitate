@@ -642,10 +642,16 @@ class TropoAGItate
   def initialize(current_call, current_app)
     @current_call     = current_call
     @current_app      = current_app
+
     @tropo_agi_config = tropo_agi_config
     log "====> With Configuration: #{@tropo_agi_config.inspect} <===="
-    
     @commands = Commands.new(@current_call, @tropo_agi_config)
+  rescue => e
+      show 'Could not find your configuration file.', e
+      # Could not find any config, so failing over to the default location
+      failover('sip:9991443146@sip.tropo.com')
+      show 'Session sent to default backup location', 'Now aborting the script'
+      abort
   end
   
   ##
@@ -686,15 +692,7 @@ class TropoAGItate
     error_message = 'We are unable to connect to the A G I server at this time, please try again later.'
     @current_call.log "====> #{error_message} <===="
     @current_call.log e
-    if @current_call.isActive
-      @current_call.answer
-      if @tropo_agi_config['tropo']['next_sip_uri']
-        @current_call.transfer @tropo_agi_config['tropo']['next_sip_uri']
-      else
-        @current_call.say error_message, :voice => @tropo_agi_config['tropo']['voice']
-        @current_call.hangup
-      end
-    end
+    failover(@tropo_agi_config['tropo']['next_sip_uri'])
     false
   end
   
@@ -825,16 +823,52 @@ MSG
     end
     args
   end
-    
+  
+  ##
+  # This method fails over to the backup SIP URI or plays the error message if no backup
+  # provided
+  #
+  # @return nil
+  def failover(location)
+    if @current_call.isActive
+      @current_call.answer
+      if location
+        @current_call.transfer location
+      else
+        @current_call.say error_message, :voice => @tropo_agi_config['tropo']['voice']
+        @current_call.hangup
+      end
+    end
+  end
+  
   ##
   # Load the configuration from the current account FTP/WebDAV files of Tropo
   #
   # @return [Hash] the configuration details
   def tropo_agi_config
+    # Find the account number this app is running under
     account_data = @current_app.baseDir.to_s.match /\\(\d+)$/
-    YAML.load(Net::HTTP.get(URI.parse("http://hosting.tropo.com/#{account_data[1]}/www/tropo_agi_config/tropo_agi_config.yml")))
-  rescue => e
-    show 'Can not find config file', e
+    
+    # Try from the www directory on the Tropo file system
+    result = fetch_config_file "/#{account_data[1]}/www/tropo_agi_config/tropo_agi_config.yml"
+    return YAML.load(result.body) if result.code == '200'
+    show 'Can not find config file.', result.body
+    
+    # No config file found
+    raise RuntimeError, "Configuration file not found"
+  end
+  
+  ##
+  # Fetches the configuration file
+  #
+  # @param [String] the resource where the file is to be found
+  #
+  # @return [Object] the resulting HTTP object
+  def fetch_config_file(resource)
+    url = URI.parse("http://hosting.tropo.com")
+    Net::HTTP.start(url.host, url.port) {|http|
+      http.get resource
+    }
   end
 end#end class TropoAGItate 
 
