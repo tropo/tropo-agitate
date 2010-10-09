@@ -108,7 +108,16 @@ class TropoAGItate
     def ask(options={})
       options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args]['recognizer'].nil?
       options[:args][:voice] = @tropo_agi_config['tropo']['voice'] if options[:args]['voice'].nil?
-      response = @current_call.ask options[:args]['prompt'], options[:args]
+      
+      # Check for Asterisk sounds
+      asterisk_sound_url = fetch_asterisk_sound(options[:args]['prompt'])
+      if asterisk_sound_url
+        prompt = asterisk_sound_url
+      else
+        prompt = options[:args]['prompt']
+      end
+      
+      response = @current_call.ask prompt, options[:args]
       if response.value == 'NO_SPEECH' || response.value == 'NO_MATCH'
         result = { :interpretation => response.value }
       else
