@@ -109,7 +109,6 @@ class TropoAGItate
       options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args]['recognizer'].nil?
       options[:args][:voice] = @tropo_agi_config['tropo']['voice'] if options[:args]['voice'].nil?
       response = @current_call.ask options[:args]['prompt'], options[:args]
-      log "=====> #{response.value} <===="
       if response.value == 'NO_SPEECH' || response.value == 'NO_MATCH'
         result = { :interpretation => response.value }
       else
@@ -178,7 +177,6 @@ class TropoAGItate
       if @wait_for_digits_options.nil?
         #args = options[:args][0].match /^(.*)(\W{2}\s\W)(.*)$/
         options[:args][0] = options[:args][0][0..-15]
-        log "====> OPTIONS: #{options.inspect} <===="
         playback(options)
       end
       @agi_response + "0\n"
@@ -501,7 +499,6 @@ class TropoAGItate
                                            'choiceMode' => 'keypad' })
       else
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
-        log "====> RESPONSE: #{response.inspect} <===="
       end
       @agi_response + response.value[0].to_s + "\n"
     rescue => e
@@ -645,7 +642,7 @@ class TropoAGItate
     @current_app      = current_app
 
     @tropo_agi_config = tropo_agi_config
-    log "====> With Configuration: #{@tropo_agi_config.inspect} <===="
+    show 'With Configuration',  @tropo_agi_config.inspect
     @commands = Commands.new(@current_call, @tropo_agi_config)
   rescue => e
       show 'Could not find your configuration file.', e
@@ -778,7 +775,7 @@ MSG
     when 'record'
       @commands.record(options)
     else
-      @current_call.log "====> Unknown command: #{data} <===="
+      show "Unknown command", data
       "200 result=-1\n"
     end
   end
