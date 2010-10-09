@@ -69,7 +69,7 @@ describe "TropoAGItate::TropoCommands" do
   
   it "should return a valid string when a file is requested" do
     options = { :args => ["\"hey there!\" \"1234567890*#\""] }
-    @tropo_commands.file(options).should == "200 result=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
   end
   
   it "should return a valid string when a meetme is requested" do

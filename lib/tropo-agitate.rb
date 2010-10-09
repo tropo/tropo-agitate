@@ -193,7 +193,7 @@ class TropoAGItate
           prompt = options[:args][0]
         end
         
-        response = @current_call.ask prompt, { 'choices' => '[1 DIGIT]', 'choiceMode' => 'keypad' }
+        response = @current_call.ask prompt, { 'choices' => '[1 DIGIT], *, #', 'choiceMode' => 'keypad' }
       end
       show 'File response', response
       @agi_response + response.value[0].to_s + " endpos=0\n"
@@ -512,7 +512,7 @@ class TropoAGItate
         timeout = 1000 if timeout == -1
         timeout = timeout / 1000
         response = @current_call.ask('', { 'timeout'    => timeout, 
-                                           'choices'    => '[1 DIGIT]',
+                                           'choices'    => '[1 DIGIT], *, #',
                                            'choiceMode' => 'keypad' })
       else
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
