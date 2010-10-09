@@ -185,11 +185,18 @@ class TropoAGItate
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
         options[:args][0] = options[:args][0][0..-15]
-        ask({ :args=> { 'prompt'     => options[:args][0], 
-                        'choices'    => '[1 DIGIT]',
-                        'choiceMode' => 'keypad' } })
+        
+        asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
+        if asterisk_sound_url
+          prompt = asterisk_sound_url
+        else
+          prompt = options[:args][0]
+        end
+        
+        response = @current_call.ask prompt, { 'choices' => '[1 DIGIT]', 'choiceMode' => 'keypad' }
       end
-      @agi_response + "0\n"
+      show 'File response', response
+      @agi_response + response.value[0].to_s + " endpos=0\n"
     rescue => e
       log_error(this_method, e)
     end
