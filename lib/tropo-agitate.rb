@@ -184,9 +184,10 @@ class TropoAGItate
     def file(options={})
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
-        #args = options[:args][0].match /^(.*)(\W{2}\s\W)(.*)$/
         options[:args][0] = options[:args][0][0..-15]
-        playback(options)
+        ask({ :args=> { 'prompt'     => options[:args][0], 
+                        'choices'    => '[1 DIGIT]',
+                        'choiceMode' => 'keypad' } })
       end
       @agi_response + "0\n"
     rescue => e
