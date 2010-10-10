@@ -106,6 +106,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def ask(options={})
+      check_state
+      
       options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args]['recognizer'].nil?
       options[:args][:voice] = @tropo_agi_config['tropo']['voice'] if options[:args]['voice'].nil?
       
@@ -153,6 +155,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def dial(options={})
+      check_state 
+      
       destinations = parse_destinations(options[:args])
       options = { :callerID => '4155551212' }
       options['headers'] = set_headers
@@ -182,6 +186,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def file(options={})
+      check_state
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
         options[:args][0] = options[:args][0][0..-15]
@@ -232,6 +237,8 @@ class TropoAGItate
     # param [Hash] a hash of items
     # @return [String] the response in AGI raw form
     def meetme(options={})
+      check_state
+      
       options = options[:args][0].split('|')
       @current_call.conference options[0].chop
       @agi_response + "0\n"
@@ -262,6 +269,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def monitor(options={})
+      check_state
+      
       @current_call.startCallRecording options[:args]['uri'], options[:args]
       @agi_response + "0\n"
     rescue => e
@@ -279,6 +288,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def playback(options={})
+      check_state
+      
       asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
       if asterisk_sound_url
         text = asterisk_sound_url
@@ -302,6 +313,8 @@ class TropoAGItate
     # 
     # @return [String] the response in AGI raw form
     def record(options={})
+      check_state
+      
       options = options[:args][0].split
       silence_timeout = strip_quotes(options[options.length - 1]).split('=')
       beep = true if strip_quotes(options[5]) == 'BEEP'
@@ -324,6 +337,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form 
     def redirect(options={})
+      check_state
+      
       @current_call.redirect options[:args][0]
       @agi_response + "0\n"
     rescue => e
@@ -350,6 +365,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def say(options={})
+      check_state
+      
       @current_call.say options[:args]['prompt'], options[:args]
       @agi_response + "0\n"
     rescue => e
@@ -364,6 +381,8 @@ class TropoAGItate
     # @param [Hash] options used to build the say
     # @return [String] the response in AGI raw form
     def saydigits(options={})
+      check_state
+      
       ssml = "<say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as>"
       @current_call.say ssml, :voice => @tropo_agi_config['tropo']['voice']
       @agi_response + "0\n"
@@ -380,6 +399,8 @@ class TropoAGItate
     # 
     # @return [String] the response in AGI raw form
     def sayphonetic(options={})
+      check_state
+      
       text = ''
       options[:args][0].split(//).each do |char|
         text = text + char + ' '
@@ -401,6 +422,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def saytime(options={})
+      check_state
+      
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -415,6 +438,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def senddtmf(options={})
+      check_state
+      
       base_uri = 'http://hosting.tropo.com/49767/www/audio/dtmf/'
       options[:args][0].split(//).each do |char|
         case char
@@ -507,6 +532,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def wait_for_digits(options={})
+      check_state
+      
       if @wait_for_digits_options.nil?
         timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
         timeout = 1000 if timeout == -1
@@ -531,6 +558,12 @@ class TropoAGItate
     end
     
     private
+    
+    ##
+    # Automatically answers the call/session if not explicityly done
+    def check_state
+      @current_call.answer if @current_call.state == 'RINGING'
+    end
     
     ##
     # Returns the URI location of the Asterisk sound file if it is available
