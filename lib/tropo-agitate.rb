@@ -254,8 +254,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def method_missing(method, *args)
-      show 'Method not supported by Tropo AGI: ', args[1]
-      return @agi_response + "-1\n"
+      show "Invalid or unknown command", args[1]
+      return "510 result=Invalid or unknown Command\n"
     end
     
     ##
@@ -825,8 +825,8 @@ MSG
     when 'record'
       @commands.record(options)
     else
-      show "Unknown command", data
-      "200 result=-1\n"
+      show "Invalid or unknown command", data
+      return "510 result=Invalid or unknown Command\n"
     end
   end
   
