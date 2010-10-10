@@ -848,7 +848,11 @@ MSG
     if @current_call.isActive
       @current_call.answer
       if location
-        @current_call.transfer location
+        begin
+          @current_call.transfer location
+        rescue => e
+          show 'Unable to transfer to your next_sip_uri location', e
+        end
       else
         @current_call.say error_message, :voice => @tropo_agi_config['tropo']['voice']
         @current_call.hangup
