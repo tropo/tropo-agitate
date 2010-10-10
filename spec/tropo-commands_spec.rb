@@ -44,8 +44,8 @@ describe "TropoAGItate::TropoCommands" do
   end
   
   it "should generate an error string if we pass an unknown command" do
-    @tropo_commands.foobar.should == "200 result=-1\n"
-    @tropo_commands.foobar('fooey').should == "200 result=-1\n"
+    @tropo_commands.foobar.should == "510 result=Invalid or unknown Command\n"
+    @tropo_commands.foobar('fooey').should == "510 result=Invalid or unknown Command\n"
   end
   
   it "should return a valid recognition on wait_for_digits" do
