@@ -7,6 +7,10 @@ tropo:
     # The default recognizer to use for Speech Recogintion/ASR
     # Refer to: https://www.tropo.com/docs/scripting/ask.htm (recognizer option) for a list of supported recognizers
     recognizer: en-us
+    # The SIP address to send the session/call to if AGItate may not connect to your AGI server
+    # this may be another Tropo app that plays a simple message, or an address on your Asterisk server
+    # by default, if left unchanged this will play a message to the user:
+    #   'We were unable to connect to your A G I server. Please try again later. Goodbye.' 
     next_sip_uri: sip:9991443146@sip.tropo.com
     
 agi:
