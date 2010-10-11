@@ -301,10 +301,8 @@ class TropoAGItate
     def playback(options={})
       valid_state = check_state
       # Return the error code if call is disconnected/hungup
-      log 'Yeah!'
       show 'Valid State: ', valid_state
       return valid_state if valid_state != true
-      log 'Fuck yeah!'
       
       asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
       if asterisk_sound_url
