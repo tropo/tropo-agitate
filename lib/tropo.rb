@@ -33,21 +33,28 @@ end
 class CurrentCall
   attr_reader :value
   attr_reader :isActive
+  attr_reader :state
   
   def initialize
     @value = '94070'
     @headers = {}
     @isActive = true
+    @state = 'RINGING'
   end
   
-  def answer; 'answer response: answered'; end
+  def answer; @state ='ANSWERED'; end
   def ask(text, options); AskResponse.new; end
   def callerID; '4155551212'; end
   def callerName; 'Jason Goecke'; end
   def call(text, options); 'call response: ' + text.inspect; p options; end
   def conference(text); 'conference reponse: ' + text.inspect; end
   def getHeader(header); @headers[header]; end
-  def hangup; @isActive = false; end
+  
+  def hangup
+    @isActive = false
+    @state    = 'DISCONNECTED'
+  end
+  
   def id; '1234'; end
   def log(text); text; end
   def meetme(text, *rest); "meetme: #{text.inspect}, #{rest.inspect}"; end

@@ -106,9 +106,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def ask(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args]['recognizer'].nil?
       options[:args][:voice] = @tropo_agi_config['tropo']['voice'] if options[:args]['voice'].nil?
@@ -157,9 +155,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def dial(options={})
-      valid_state = check_state 
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state 
       
       destinations = parse_destinations(options[:args])
       options = { :callerID => '4155551212' }
@@ -190,9 +186,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def file(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
@@ -244,9 +238,7 @@ class TropoAGItate
     # param [Hash] a hash of items
     # @return [String] the response in AGI raw form
     def meetme(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       options = options[:args][0].split('|')
       @current_call.conference options[0].chop
@@ -278,9 +270,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def monitor(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       @current_call.startCallRecording options[:args]['uri'], options[:args]
       @agi_response + "0\n"
@@ -299,10 +289,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def playback(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      show 'Valid State: ', valid_state
-      return valid_state if valid_state != true
+      check_state
       
       asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
       if asterisk_sound_url
@@ -327,9 +314,7 @@ class TropoAGItate
     # 
     # @return [String] the response in AGI raw form
     def record(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       options = options[:args][0].split
       silence_timeout = strip_quotes(options[options.length - 1]).split('=')
@@ -353,9 +338,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form 
     def redirect(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       @current_call.redirect options[:args][0]
       @agi_response + "0\n"
@@ -383,9 +366,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def say(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       @current_call.say options[:args]['prompt'], options[:args]
       @agi_response + "0\n"
@@ -401,9 +382,7 @@ class TropoAGItate
     # @param [Hash] options used to build the say
     # @return [String] the response in AGI raw form
     def saydigits(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       ssml = "<say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as>"
       @current_call.say ssml, :voice => @tropo_agi_config['tropo']['voice']
@@ -421,9 +400,7 @@ class TropoAGItate
     # 
     # @return [String] the response in AGI raw form
     def sayphonetic(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       text = ''
       options[:args][0].split(//).each do |char|
@@ -446,9 +423,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def saytime(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       @agi_response + "0\n"
     rescue => e
@@ -464,9 +439,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def senddtmf(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       base_uri = 'http://hosting.tropo.com/49767/www/audio/dtmf/'
       options[:args][0].split(//).each do |char|
@@ -509,6 +482,8 @@ class TropoAGItate
     # 
     # @return [String] the AGI response
     def stopcallrecording(options={})
+      check_state
+      
       @current_call.stopCallRecording
       @agi_response + "0\n"
     rescue => e
@@ -560,9 +535,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def wait_for_digits(options={})
-      valid_state = check_state
-      # Return the error code if call is disconnected/hungup
-      return valid_state if valid_state != true
+      check_state
       
       if @wait_for_digits_options.nil?
         timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
@@ -592,10 +565,9 @@ class TropoAGItate
     ##
     # Automatically answers the call/session if not explicityly done
     def check_state
-      show "Current state: ", @current_call.state
       case @current_call.state
       when 'DISCONNECTED'
-        return "511 result=Command Not Permitted on a dead channel\n"
+        raise RuntimeError, '511 result=Command Not Permitted on a dead channel'
       when 'RINGING'
         @current_call.answer
         # Sleep to allow audio to settle
@@ -603,7 +575,7 @@ class TropoAGItate
       end
       true
     end
-    
+        
     ##
     # Returns the URI location of the Asterisk sound file if it is available
     #
@@ -653,7 +625,14 @@ class TropoAGItate
       show "Error: Unable to execute the #{action} request. call_active?", @current_call.isActive
       show 'Error output:', error
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
-      @agi_response + "-1\n"
+      
+      # Return an error based on the error encountered
+      case error.to_s
+      when '511 result=Command Not Permitted on a dead channel'
+        error.to_s + "\n"
+      else
+        @agi_response + "-1\n"
+      end
     end
     
     ##
