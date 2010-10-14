@@ -101,12 +101,14 @@ You may then invoke a call request via HTTP as follows:
 * POST
 <pre>
 	http://api.tropo.com/1.0/sessions
+	<code>
 	<session>
 		<token>YOUR_TOKEN</token>
 		<var name="destination" value="4155551212" />
 		<var name="caller_id" value="7146432997" />
 		<var name="tropo_tag" value=1234 />
 	</session>
+	</code>
 </pre>
 	
 Supported Adhearsion & AGI Methods
