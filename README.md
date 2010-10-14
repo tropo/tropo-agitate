@@ -94,19 +94,20 @@ Tropo supports placing outbound calls with the [Session API](https://www.tropo.c
 You may then invoke a call request via HTTP as follows:
 
 * GET
-<code>
-http://api.tropo.com/1.0/sessions?action=create&token=TOKEN&destination=NUMBER&caller\_id=CALLINGNUMBER&tropo_tag=1234
-</code>
+<pre>
+	http://api.tropo.com/1.0/sessions?action=create&token=TOKEN&destination=NUMBER&caller\_id=CALLINGNUMBER&tropo_tag=1234
+</pre>
+
 * POST
-<code>
-http://api.tropo.com/1.0/sessions
-<session>
-	<token>YOUR_TOKEN</token>
-	<var name="destination" value="4155551212" />
-	<var name="caller_id" value="7146432997" />
-	<var name="tropo_tag" value=1234 />
-</session>
-</code>
+<pre>
+	http://api.tropo.com/1.0/sessions
+	<session>
+		<token>YOUR_TOKEN</token>
+		<var name="destination" value="4155551212" />
+		<var name="caller_id" value="7146432997" />
+		<var name="tropo_tag" value=1234 />
+	</session>
+</pre>
 	
 Supported Adhearsion & AGI Methods
 ----------------------------------
