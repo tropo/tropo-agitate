@@ -992,16 +992,16 @@ if @tropo_testing.nil?
     # Time tropo will wait before hanging up, default is 30
     options[:timeout]   = $timeout if $timeout
     
-    # If voice turn the phone number into a Tel URI
-    $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice'
+    # If voice turn the phone number into a Tel URI, but only if not a SIP URI
+    $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice' && $destination[0..2] != 'sip'
     
+    log "====> Calling to: #{$destination} - with these options: #{options.inspect} <===="
     # Place the call
     call $destination, options
   end
   
   # If we have an active call, start running the AGI client
   if $currentCall
-    log "====> Current Call: #{$currentCall} <===="
     # Create the instance of TropoAGItate with Tropo's currentCall object
     tropo_agi = TropoAGItate.new($currentCall, $currentApp)
     # Start sending/receiving AGI commands via the TCP socket
