@@ -68,9 +68,12 @@ class TropoAGItate
     #
     # @return [Object] an instance of Command
     def initialize(current_call, tropo_agi_config)
-      @current_call = current_call
+      @current_call     = current_call
       @tropo_agi_config = tropo_agi_config
-      @agi_response = "200 result="
+      @agi_response     = "200 result="
+      @tropo_voice      = @tropo_agi_config['tropo']['voice']
+      @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
+
       # Used to store user request values for SET/GET VARIABLE commands of Asterisk
       # May also be passed in as a JSON string from the Tropo Session API
       if $user_vars
@@ -108,8 +111,8 @@ class TropoAGItate
     def ask(options={})
       check_state
       
-      options[:args][:recognizer] = @tropo_agi_config['tropo']['recognizer'] if options[:args]['recognizer'].nil?
-      options[:args][:voice] = @tropo_agi_config['tropo']['voice'] if options[:args]['voice'].nil?
+      options[:args][:recognizer] = @tropo_recognizer if options[:args]['recognizer'].nil?
+      options[:args][:voice] = @tropo_voice if options[:args]['voice'].nil?
       
       # Check for Asterisk sounds
       asterisk_sound_url = fetch_asterisk_sound(options[:args]['prompt'])
@@ -300,7 +303,7 @@ class TropoAGItate
       else
         text = options[:args][0]
       end
-      @current_call.say text, :voice => @tropo_agi_config['tropo']['voice']
+      @current_call.say text, :voice => @tropo_voice
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -388,7 +391,7 @@ class TropoAGItate
       check_state
       
       ssml = "<say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as>"
-      @current_call.say ssml, :voice => @tropo_agi_config['tropo']['voice']
+      @current_call.say ssml, :voice => @tropo_voice
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -515,6 +518,12 @@ class TropoAGItate
       end
     rescue => e
       log_error(this_method, e)
+    end
+    
+    ##
+    # Used to change the voice being used for speech synthesis/TTS
+    #
+    def voice(options={})
     end
     
     ##
@@ -905,7 +914,7 @@ MSG
           show 'Unable to transfer to your next_sip_uri location', e
         end
       else
-        @current_call.say error_message, :voice => @tropo_agi_config['tropo']['voice']
+        @current_call.say error_message, :voice => @tropo_voice
         @current_call.hangup
       end
     end
