@@ -50,6 +50,64 @@ Instructions may be found [here](https://www.tropo.com/docs/scripting/quickstart
 
 * Happy Tropo-ing!
 
+Placing Outbound Calls
+----------------------
+
+Tropo supports placing outbound calls with the [Session API](https://www.tropo.com/docs/scripting/sessions.htm). AGItate allows for receiving a predefined set of parameters to place the call and tag it so you may associate it to your request once it reaches your AGI server. The parameters supported are:
+
+* destination
+
+	The destination to make a call to or send a message to. This may currently take one of the following forms:
+
+	14155551212 - The telephone number to dial with the country code. 
+	sip:username@doamin.com - The SIP URI to dial
+	username - The IM or Twitter user name.
+
+	Some IM networks like Google Talk and Live Messenger include a domain as part of the user name. For those networks, include the domain: username@gmail.com
+
+	When making a voice call, you can specify dialing options as part of the number:
+
+	You can also list multiple phone numbers or SIP addresses (or both!) as a comma separated list
+
+* caller_id
+
+	The Caller ID for the session's origin. For example, if the number (407)555-1212 called (407)555-1000, the *1212 number would be the callerID. This also applies to IM account names; if IM account 'tropocloud' sends a message to 'foobar123', the callerID would be 'tropocloud'.
+
+	The callerID can be manually set to a specific number; for voice calls, this can be any valid phone number, though for SMS and IM it must be a number/ID assigned to your account.
+
+* channel
+
+	Channel tells Tropo whether the call is "voice" or "text".
+
+* network
+
+	Network is used mainly by the text channels; values can be SMS when sending a text message, or a valid IM network name such as AIM, GTALK, MSN, JABBER, TWITTER and YAHOO. For IM network, you must have an IM account linked in your app. For example, if you try to send to AIM when you don't have an AIM username included in your app, your app will fail.
+
+* timeout
+
+	Timeout only applies to the voice channel and determines the amount of time Tropo will wait - in seconds - for the call to be answered before giving up.
+
+* tropo_tag
+
+	An arbitrary unique identifier that you may use to identify the call once it is placed and passed to your AGI server. This value will appear in the tropo\_headers variable received at the beginning of the request to your AGI server in the JSON as tropo\_tag.
+	
+You may then invoke a call request via HTTP as follows:
+
+* GET
+<code>
+http://api.tropo.com/1.0/sessions?action=create&token=TOKEN&destination=NUMBER&caller\_id=CALLINGNUMBER&tropo_tag=1234
+</code>
+* POST
+<code>
+http://api.tropo.com/1.0/sessions
+<session>
+	<token>YOUR_TOKEN</token>
+	<var name="destination" value="4155551212" />
+	<var name="caller_id" value="7146432997" />
+	<var name="tropo_tag" value=1234 />
+</session>
+</code>
+	
 Supported Adhearsion & AGI Methods
 ----------------------------------
 

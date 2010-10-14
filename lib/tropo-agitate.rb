@@ -5,7 +5,7 @@
 #####
 
 # If we are testing, then add some methods, $currentCall will be nil if a call did not start this session
-if $currentCall.nil?
+if $currentCall.nil? && $destination.nil?
   Object.class_eval do
     def log(val)
       val
@@ -89,7 +89,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def answer
       if @current_call.state == 'RINGING'
-        @current_call.answer; @call_answered = true if @call_answered == false
+        @current_call.answer
       else
         show 'Warning - invalid call state to invoke an answer:', @current_call.state
       end
@@ -213,8 +213,11 @@ class TropoAGItate
     #
     # @return [Hash] all of the SIP headers on the current session
     def getheaders
+      hash = {}
       # We are accessing the Java object directly, so we get a Java HashMap back
-      hashmap_to_hash($incomingCall.getHeaderMap) if $incomingCall
+      hash = hashmap_to_hash($incomingCall.getHeaderMap) if $incomingCall != 'nullCall'
+      hash.merge!({ :tropo_tag => $tropo_tag }) if $tropo_tag
+      hash
     end
     
     ##
@@ -748,13 +751,11 @@ class TropoAGItate
   # @return nil
   def create_socket_connection
     @agi_uri = URI.parse @tropo_agi_config['agi']['uri']
-    @agi_client    = TCPSocket.new(@agi_uri.host, @agi_uri.port)
+    @agi_client = TCPSocket.new(@agi_uri.host, @agi_uri.port)
     @agi_client.write(initial_message(@agi_uri.host, @agi_uri.port, @agi_uri.path[1..-1]))
-    @call_answered = false
     true
   rescue => e
     # If we can not open the socket to the AGI server, play/log an error message and hangup the call
-    @current_call.log e
     error_message = 'We are unable to connect to the A G I server at this time, please try again later.'
     @current_call.log "====> #{error_message} <===="
     @current_call.log e
@@ -784,7 +785,6 @@ class TropoAGItate
   #
   # @return [String] the response in AGI raw form
   def initial_message(agi_host, agi_port, agi_context)
-    
     # Grab the headers and then push them in the initial message
     headers = @commands.getheaders
     rdnis = 'unknown'
@@ -813,7 +813,7 @@ agi_priority: 1
 agi_enhanced: 0.0
 agi_accountcode: 
 agi_threadid: #{@current_call.id}
-tropo_headers: #{headers.to_json}
+tropo_headers: #{headers.to_json if headers.keys.length > 0}
 
 MSG
   end
@@ -946,17 +946,29 @@ end#end class TropoAGItate
 if @tropo_testing.nil?
   log "====> Running Tropo-AGI <===="
   
-  # If this is an outbound request place the call and allow for a custom AGI_URI
-  if $outbound_address
+  # If this is an outbound request place the call
+  # see: https://www.tropo.com/docs/scripting/call.htm
+  if $destination
     options = {}
-    options[:callerID] = $caller_id if $caller_id
-    options[:channel]  = $channel || 'voice'
-    options[:timeout]  = $timeout if $timeout
-    call $outbound_address, options
+    # User may pass in the caller ID to use
+    options[:callerID]  = $caller_id if $caller_id
+    # User may pass in text or voice to use for the channel
+    options[:channel]   = $channel || 'voice'
+    #  User may pass in AIM, GTALK, MSN, JABBER, TWITTER, SMS or YAHOO, SMS is default
+    options[:network]   = $network || 'SMS'
+    # Time tropo will wait before hanging up, default is 30
+    options[:timeout]   = $timeout if $timeout
+    
+    # If voice turn the phone number into a Tel URI
+    $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice'
+    
+    # Place the call
+    call $destination, options
   end
   
   # If we have an active call, start running the AGI client
   if $currentCall
+    log "====> Current Call: #{$currentCall} <===="
     # Create the instance of TropoAGItate with Tropo's currentCall object
     tropo_agi = TropoAGItate.new($currentCall, $currentApp)
     # Start sending/receiving AGI commands via the TCP socket
