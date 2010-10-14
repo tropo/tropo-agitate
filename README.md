@@ -242,7 +242,27 @@ These Adhearsion dialplan examples are also available in the 'examples' director
 	send_dtmf_example {
 	  dtmf '1234567890#*'
 	}
+	
+	# Shows how to set the voice option for speech synthesis/TTS
+	set_voice_example {
+	  play 'Hello world!'
+	  execute "voice", "simon"
+	  play 'Hello world!'
+	  execute "voice", "default"
+	  play 'Hello world!'
+	}
 
+	# Shows how to set the voice option for speech synthesis/TTS
+	set_recognizer_example {
+	  execute "voice", "carmen"
+	  execute "recognizer", "es-es"
+	  result = execute 'ask', { :prompt  => 'Por favor, ingrese su código postal', 
+	                            :choices => 'zipcode([5 DIGITS])' }.to_json
+	  # Get rid of the '200 result =' and then parse the JSON
+	  response = JSON.parse(result[11..-1])
+	  ahn_log.debug response
+	}
+	
 	# Start menu example
 	# Related Tropo method: https://www.tropo.com/docs/scripting/ask.htm
 	menu_example {

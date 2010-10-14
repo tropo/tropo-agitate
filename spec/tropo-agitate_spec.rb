@@ -136,7 +136,10 @@ MSG
     command = @tropo_agitate.execute_command("EXEC monitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
     command.should == "200 result=0\n"
     
-    command = @tropo_agitate.execute_command("EXEC mixmonitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
+    command = @tropo_agitate.execute_command('EXEC voice "simon"')
+    command.should == "200 result=0\n"
+    
+    command = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
     command.should == "200 result=0\n"
   end
 end

@@ -312,6 +312,21 @@ class TropoAGItate
     alias :say :playback
     
     ##
+    # Used to change the voice being used for speech recognition/ASR
+    #
+    # @param [Hash] options used set the recognizer
+    #
+    # @return [String] the response in AGI raw form
+    def recognizer(options={})
+      if options[:args][0] == 'default'
+        @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
+      else
+        @tropo_recognizer = options[:args][0]
+      end
+      @agi_response + "0\n"
+    end
+    
+    ##
     # Records a user input
     # AGI: http://www.voip-info.org/index.php?content_id=3176
     # Tropo: https://www.tropo.com/docs/scripting/record.htm
@@ -523,7 +538,16 @@ class TropoAGItate
     ##
     # Used to change the voice being used for speech synthesis/TTS
     #
+    # @param [Hash] options used set the voice
+    #
+    # @return [String] the response in AGI raw form
     def voice(options={})
+      if options[:args][0] == 'default'
+        @tropo_voice = @tropo_agi_config['tropo']['voice']
+      else
+        @tropo_voice = options[:args][0]
+      end
+      @agi_response + "0\n"
     end
     
     ##

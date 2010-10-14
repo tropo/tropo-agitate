@@ -97,4 +97,14 @@ describe "TropoAGItate::TropoCommands" do
     @tropo_commands.monitor_stop.should == "200 result=0\n"
     @tropo_commands.mixmonitor_stop.should == "200 result=0\n"
   end
+  
+  it "should return a valid string when a voice is set" do
+    options = { :args => ["simon"] }
+    @tropo_commands.voice(options).should == "200 result=0\n"
+  end
+  
+  it "should return a valid string when a recognizer is set" do
+    options = { :args => ["en-us"] }
+    @tropo_commands.recognizer(options).should == "200 result=0\n"
+  end
 end
