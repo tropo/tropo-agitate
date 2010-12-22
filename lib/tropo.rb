@@ -81,8 +81,17 @@ class CurrentApp
   end
   
   def baseDir
+    @cnt = 0 if @cnt.nil?
+    
     # This is only for testing JT!!!
-    'c:\tropo_app_home\49767'
+    if @cnt < 3
+      @cnt += 1
+      # Keep returning Windows format
+      'c:\tropo_app_home\49767'
+    else
+      # Then return the Linux format for the last test
+      '/tropo_app_home/49768'
+    end
   end
 end
 

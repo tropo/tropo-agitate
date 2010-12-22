@@ -1,4 +1,5 @@
 # ALL OF THESE TESTS ARE PENDING, HAVE SOME STRANGENESS WITH EM AND RSPEC
+# em-spec is not Rspec 2.x compat
 
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 

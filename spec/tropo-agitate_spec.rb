@@ -142,4 +142,9 @@ MSG
     command = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
     command.should == "200 result=0\n"
   end
+  
+  it "should return the account data from a directory lookup" do
+    @tropo_agitate.fetch_account_data[1].should == '49767'
+    @tropo_agitate.fetch_account_data[1].should == '49768'
+  end
 end

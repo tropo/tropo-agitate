@@ -3,10 +3,11 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'agi_config'))
 
 @tropo_testing = true
-%w(rubygems fakeweb eventmachine tropo-agitate lib/tropo em-spec/rspec yaml).each { |lib| require lib }
+%w(rubygems fakeweb eventmachine tropo-agitate lib/tropo yaml).each { |lib| require lib }
+# em-spec/rspec Out for now since it is not Rspec 2.x compat
 
-Spec::Runner.configure do |config|
-
+RSpec.configure do |config|
+  
 end
 
 # NOTE!

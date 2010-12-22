@@ -950,7 +950,7 @@ MSG
   # @return [Hash] the configuration details
   def tropo_agi_config
     # Find the account number this app is running under
-    account_data = @current_app.baseDir.to_s.match /\\(\d+)$/
+    account_data = fetch_account_data
     
     # Try from the www directory on the Tropo file system
     result = fetch_config_file "/#{account_data[1]}/www/tropo_agi_config/tropo_agi_config.yml"
@@ -959,6 +959,14 @@ MSG
     
     # No config file found
     raise RuntimeError, "Configuration file not found"
+  end
+  
+  ##
+  # Fetches the account data
+  #
+  # @return [Array] the account data details derived from the underlying directory structure
+  def fetch_account_data
+    @current_app.baseDir.to_s.match /(\d+)$/
   end
   
   ##
