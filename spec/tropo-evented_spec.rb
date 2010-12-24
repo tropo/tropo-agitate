@@ -7,19 +7,19 @@ describe "TropoAGItate" do
   before(:all) do
     # These tests are all local unit tests
     FakeWeb.allow_net_connect = false
-    
-    # Register the hosted JSON file  
-    FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json", 
+
+    # Register the hosted JSON file
+    FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json",
                          :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
-                           
+
     @current_call = CurrentCall.new
     # @tropo_agi = TropoAGItate.new(@current_call, AGI_URI_FOR_LOCAL_TEST, ASTERISK_SOUNDS)
   end
-  
+
   it "should execute a series of commands sent by an AGI Server" do
     pending('ALL OF THESE TESTS ARE PENDING, HAVE SOME STRANGENESS WITH EM AND RSPEC')
     module AgiServer
-      
+
       def post_init
         @commands = [ { :command => 'Initial Session', :response => @initial_message },
                       { :command => "ANSWER\n", :response => "200 result=0\n" },
@@ -40,7 +40,7 @@ describe "TropoAGItate" do
 
       def receive_data data
         p data
-        case data 
+        case data
         when "commands\n", "commands\r\n"
           p @commands
           send_data @commands.to_json + "\n"
@@ -63,10 +63,10 @@ describe "TropoAGItate" do
         EventMachine::start_server "127.0.0.1", 4573, AgiServer
       }
     end
-    
+
     @tropo_agi.run
     puts 'blah blah blah blah'
-    
+
     @commands, @results = nil, nil
     tcp_client = TCPSocket.new("127.0.0.1", 4573)
     tcp_client.write("commands\n")
@@ -74,7 +74,7 @@ describe "TropoAGItate" do
     tcp_client.write("responses\n")
     @results = JSON.parse(tcp_client.gets.rstrip)
     tcp_client.close
-    
+
     @commands.each_with_index do |command, index|
       command['response'].should == @results[index]
     end

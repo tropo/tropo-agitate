@@ -12,18 +12,18 @@ class AskResponse
     def interpretation
       '94070'
     end
-    
+
     def tag
       nil
     end
   end
-  
+
   attr_reader :choice
-  
+
   def initialize
     @choice = Choice.new
   end
-  
+
   def value
     '94070'
   end
@@ -34,14 +34,14 @@ class CurrentCall
   attr_reader :value
   attr_reader :isActive
   attr_reader :state
-  
+
   def initialize
     @value = '94070'
     @headers = {}
     @isActive = true
     @state = 'RINGING'
   end
-  
+
   def answer; @state ='ANSWERED'; end
   def ask(text, options); AskResponse.new; end
   def callerID; '4155551212'; end
@@ -49,12 +49,12 @@ class CurrentCall
   def call(text, options); 'call response: ' + text.inspect; p options; end
   def conference(text); 'conference reponse: ' + text.inspect; end
   def getHeader(header); @headers[header]; end
-  
+
   def hangup
     @isActive = false
     @state    = 'DISCONNECTED'
   end
-  
+
   def id; '1234'; end
   def log(text); text; end
   def meetme(text, *rest); "meetme: #{text.inspect}, #{rest.inspect}"; end
@@ -75,14 +75,14 @@ class CurrentApp
       'Application[http://hosting.tropo.com/49767/www/tropo-agi.rb:cus] ver(1.0.45500)'
     end
   end
-  
+
   def self.app
     GetApp.new
   end
-  
+
   def baseDir
     @cnt = 0 if @cnt.nil?
-    
+
     # This is only for testing JT!!!
     if @cnt < 3
       @cnt += 1
@@ -97,7 +97,7 @@ end
 
 class IncomingCall
   include Java
-  
+
   def getHeaderMap
     map = java.util.HashMap.new
     map.put "kermit", "green"
