@@ -556,7 +556,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def wait(options={})
-      @current_call.wait options[:args][0].to_i
+      @current_call.wait options[:args][0].to_i * 1000
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
