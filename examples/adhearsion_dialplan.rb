@@ -9,7 +9,7 @@ tropo_agi {
 # Invokes the native Tropo ask for Speech Recognition / ASR
 # Related Tropo method: https://www.tropo.com/docs/scripting/ask.htm
 ask_example {
-  result = execute 'ask', { :prompt  => 'Please enter your zip code', 
+  result = execute 'ask', { :prompt  => 'Please enter your zip code',
                             :choices => 'zipcode([5 DIGITS])' }.to_json
   # Get rid of the '200 result =' and then parse the JSON
   response = JSON.parse(result[11..-1])
@@ -40,7 +40,7 @@ hello_world {
 input_example {
   postal_code = input 5, :play         => 'Please enter your post code?',
                          :timeout      => 2
-                         
+
   ahn_log.postal_code.debug postal_code
   play "You entered"
   say_digits postal_code
@@ -93,7 +93,7 @@ monitor_example {
 record_prompt_example {
   play 'Please record after the beep'
   record 'http://tropo-audiofiles-to-s3.heroku.com/post_audio_to_s3?filename=voicemail.mp3',
-         :silence => 5, 
+         :silence => 5,
          :maxduration => 120
 }
 

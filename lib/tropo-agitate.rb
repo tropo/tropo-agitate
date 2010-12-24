@@ -32,9 +32,9 @@ class TropoAGItate
       text.reverse!.chop!.reverse! if text[0] == 34
       text
     end
-    
+
     private
-    
+
     ##
     # Formats the output to the log for consistency
     #
@@ -44,7 +44,7 @@ class TropoAGItate
     def show(str, var)
       log "====> #{str}: #{var.inspect} <===="
     end
-    
+
     ##
     # Provides the current method's name
     #
@@ -53,13 +53,13 @@ class TropoAGItate
       caller[0]
       # caller[0][/`([^']*)'/, 1]
     end
-    
+
   end
 
   include Helpers
   class Commands
     include Helpers
-    
+
     ##
     # Creates an instance of Command
     #
@@ -83,7 +83,7 @@ class TropoAGItate
       end
       @asterisk_sound_files = asterisk_sound_files if @tropo_agi_config['asterisk']['sounds']['enabled']
     end
-    
+
     ##
     # Initiates an answer to the Tropo call object based on an answer request via AGI
     # AGI: http://www.voip-info.org/wiki/view/answer
@@ -100,7 +100,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Initiates an ask to the Tropo call object
     # Tropo: https://www.tropo.com/docs/scripting/ask.htm
@@ -110,10 +110,10 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def ask(options={})
       check_state
-      
+
       options[:args][:recognizer] = @tropo_recognizer if options[:args]['recognizer'].nil?
       options[:args][:voice] = @tropo_voice if options[:args]['voice'].nil?
-      
+
       # Check for Asterisk sounds
       asterisk_sound_url = fetch_asterisk_sound(options[:args]['prompt'])
       if asterisk_sound_url
@@ -121,7 +121,7 @@ class TropoAGItate
       else
         prompt = options[:args]['prompt']
       end
-      
+
       response = @current_call.ask prompt, options[:args]
       if response.value == 'NO_SPEECH' || response.value == 'NO_MATCH'
         result = { :interpretation => response.value }
@@ -135,12 +135,12 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Sets the callerid and calleridname params in Tropo
     #
     # @param [Hash] the options to be used when setting callerid/calleridname
-    # 
+    #
     # @return [String] the response in AGI raw form
     def callerid(options={})
       @user_vars[options[:command].downcase] = options[:args][0]
@@ -148,7 +148,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Initiates a transfer on Tropo which corresopnds as a dial over AGI
     # AGI: http://www.voip-info.org/wiki/view/Asterisk+cmd+Dial
@@ -158,8 +158,8 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def dial(options={})
-      check_state 
-      
+      check_state
+
       destinations = parse_destinations(options[:args])
       options = { :callerID => '4155551212' }
       options['headers'] = set_headers
@@ -179,7 +179,7 @@ class TropoAGItate
     #                                     :timeout => 5,
     #                                     :choices => '[5 DIGITS]',
     #                                     :terminator => '#' }.to_json
-    # 
+    #
     #   ahn_log.postal_code.debug postal_code
     #   play "You entered"
     #   say_digits postal_code
@@ -190,18 +190,18 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def file(options={})
       check_state
-      
+
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
         options[:args][0] = options[:args][0][0..-15]
-        
+
         asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
         if asterisk_sound_url
           prompt = asterisk_sound_url
         else
           prompt = options[:args][0]
         end
-        
+
         response = @current_call.ask prompt, { 'choices' => '[1 DIGIT], *, #', 'choiceMode' => 'keypad' }
       end
       show 'File response', response
@@ -209,7 +209,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Grabs all of the SIP headers off of the current session/call
     # This is a work around until the $currentCall.getHeaderMap works, currently a bug in the Ruby shim
@@ -222,7 +222,7 @@ class TropoAGItate
       hash.merge!({ :tropo_tag => $tropo_tag }) if $tropo_tag
       hash
     end
-    
+
     ##
     # Initiates a hangup to the Tropo call object
     # AGI: http://www.voip-info.org/wiki/view/hangup
@@ -235,7 +235,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Initiates a conference
     # AGI: http://www.voip-info.org/wiki/view/Asterisk+cmd+MeetMe
@@ -245,7 +245,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def meetme(options={})
       check_state
-      
+
       options = options[:args][0].split('|')
       @current_call.conference options[0].chop
       @agi_response + "0\n"
@@ -253,7 +253,7 @@ class TropoAGItate
       log_error(this_method, e)
     end
     alias :conference :meetme
-    
+
     ##
     # Traps any unknown/unsupported commands and logs an error mesage to the Tropo debugger
     #
@@ -264,10 +264,10 @@ class TropoAGItate
       show "Invalid or unknown command", args[1]
       return "510 result=Invalid or unknown Command\n"
     end
-    
+
     ##
     # Initiates a recording of the call
-    # AGI: 
+    # AGI:
     #  - http://www.voip-info.org/index.php?content_id=3134
     #  - http://www.voip-info.org/wiki/view/Asterisk+cmd+MixMonitor
     # Tropo: https://www.tropo.com/docs/scripting/startcallrecording.htm
@@ -277,7 +277,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def monitor(options={})
       check_state
-      
+
       @current_call.startCallRecording options[:args]['uri'], options[:args]
       @agi_response + "0\n"
     rescue => e
@@ -285,7 +285,7 @@ class TropoAGItate
     end
     alias :mixmonitor :monitor
     alias :startcallrecording :monitor
-    
+
     ##
     # Initiates a playback to the Tropo call object for Speech Synthesis/TTS
     # AGI: http://www.voip-info.org/index.php?content_id=3168
@@ -296,7 +296,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def playback(options={})
       check_state
-      
+
       asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
       if asterisk_sound_url
         text = asterisk_sound_url
@@ -310,7 +310,7 @@ class TropoAGItate
     end
     alias :saynumber :playback
     alias :say :playback
-    
+
     ##
     # Used to change the voice being used for speech recognition/ASR
     #
@@ -325,18 +325,18 @@ class TropoAGItate
       end
       @agi_response + "0\n"
     end
-    
+
     ##
     # Records a user input
     # AGI: http://www.voip-info.org/index.php?content_id=3176
     # Tropo: https://www.tropo.com/docs/scripting/record.htm
     #
     # @param [Hash] the options used for the record
-    # 
+    #
     # @return [String] the response in AGI raw form
     def record(options={})
       check_state
-      
+
       options = options[:args][0].split
       silence_timeout = strip_quotes(options[options.length - 1]).split('=')
       beep = true if strip_quotes(options[5]) == 'BEEP'
@@ -346,27 +346,27 @@ class TropoAGItate
                   :recordFormat   => strip_quotes(options[1]),
                   :terminator     => strip_quotes(options[2]),
                   :beep           => beep }
-      ssml = 
+      ssml =
       @current_call.record '<speak> </speak>', options
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Provides the ability to redirect a call after it is answered
     # Tropo: https://www.tropo.com/docs/scripting/redirect.htm
     #
-    # @return [String] the response in AGI raw form 
+    # @return [String] the response in AGI raw form
     def redirect(options={})
       check_state
-      
+
       @current_call.redirect options[:args][0]
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Provides the ability to reject a call before it is answered
     # Tropo: https://www.tropo.com/docs/scripting/reject.htm
@@ -378,9 +378,9 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
-    # Provides a RAW say capability 
+    # Provides a RAW say capability
     # Tropo: https://www.tropo.com/docs/scripting/say.htm
     #
     # @param [Hash] options used to build the say
@@ -388,13 +388,13 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def say(options={})
       check_state
-      
+
       @current_call.say options[:args]['prompt'], options[:args]
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Plays back digits using SSML
     # AGI: http://www.voip-info.org/index.php?content_id=3182
@@ -404,25 +404,25 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def saydigits(options={})
       check_state
-      
+
       ssml = "<say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as>"
       @current_call.say ssml, :voice => @tropo_voice
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Speaks back individual characters in a string
     # AGI: http://www.voip-info.org/wiki/index.php?page=Asterisk+cmd+SayPhonetic
     # Tropo: https://www.tropo.com/docs/scripting/say.htm
     #
     # @param [Hash] options used to build the say
-    # 
+    #
     # @return [String] the response in AGI raw form
     def sayphonetic(options={})
       check_state
-      
+
       text = ''
       options[:args][0].split(//).each do |char|
         text = text + char + ' '
@@ -432,7 +432,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # ====> TO BE IMPLEMENTED <====
     #
@@ -445,12 +445,12 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def saytime(options={})
       check_state
-      
+
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Plays DTMF/touch tone digits to the audio channel
     # AGI: http://www.voip-info.org/index.php?content_id=3184
@@ -461,7 +461,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def senddtmf(options={})
       check_state
-      
+
       base_uri = 'http://hosting.tropo.com/49767/www/audio/dtmf/'
       options[:args][0].split(//).each do |char|
         case char
@@ -477,11 +477,11 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Returns the current state of the call
     # AGI: http://www.voip-info.org/wiki/view/channel+status
-    # 
+    #
     # @return [String] the AGI response
     def status(options={})
       case @current_call.state
@@ -496,15 +496,15 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Returns the current state of the call
     # AGI: http://www.voip-info.org/wiki/view/channel+status
-    # 
+    #
     # @return [String] the AGI response
     def stopcallrecording(options={})
       check_state
-      
+
       @current_call.stopCallRecording
       @agi_response + "0\n"
     rescue => e
@@ -512,7 +512,7 @@ class TropoAGItate
     end
     alias :monitor_stop :stopcallrecording
     alias :mixmonitor_stop :stopcallrecording
-    
+
     ##
     # Handles the storing/retrieving of User Variables associated to the call
     # AGI:
@@ -534,7 +534,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Used to change the voice being used for speech synthesis/TTS
     #
@@ -549,19 +549,19 @@ class TropoAGItate
       end
       @agi_response + "0\n"
     end
-    
+
     ##
     # Provides the ability to wait a specified period of time
     # Tropo: https://www.tropo.com/docs/scripting/wait.htm
     #
-    # @return [String] the response in AGI raw form 
+    # @return [String] the response in AGI raw form
     def wait(options={})
       @current_call.wait options[:args][0].to_i
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Asks the user to input digits, may work with touch tones or speech recognition/ASR
     # AGI: http://www.voip-info.org/wiki/view/wait+for+digit
@@ -572,12 +572,12 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def wait_for_digits(options={})
       check_state
-      
+
       if @wait_for_digits_options.nil?
         timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
         timeout = 1000 if timeout == -1
         timeout = timeout / 1000
-        response = @current_call.ask('', { 'timeout'    => timeout, 
+        response = @current_call.ask('', { 'timeout'    => timeout,
                                            'choices'    => '[1 DIGIT], *, #',
                                            'choiceMode' => 'keypad' })
       else
@@ -587,7 +587,7 @@ class TropoAGItate
     rescue => e
       log_error(this_method, e)
     end
-    
+
     ##
     # Builds a hash of the available Asterisk Sound files from a JSON file stored on Tropo
     #
@@ -595,9 +595,9 @@ class TropoAGItate
     def asterisk_sound_files
       JSON.parse(Net::HTTP.get(URI.parse(@tropo_agi_config['asterisk']['sounds']['available_files'])))
     end
-    
+
     private
-    
+
     ##
     # Automatically answers the call/session if not explicityly done
     def check_state
@@ -611,7 +611,7 @@ class TropoAGItate
       end
       true
     end
-        
+
     ##
     # Returns the URI location of the Asterisk sound file if it is available
     #
@@ -622,14 +622,14 @@ class TropoAGItate
       text = strip_quotes text
       if @tropo_agi_config['asterisk']['sounds']['enabled']
         if @asterisk_sound_files[text]
-          return @tropo_agi_config['asterisk']['sounds']['base_uri'] + '/' + 
-                 @tropo_agi_config['asterisk']['sounds']['language'] + '/' + 
+          return @tropo_agi_config['asterisk']['sounds']['base_uri'] + '/' +
+                 @tropo_agi_config['asterisk']['sounds']['language'] + '/' +
                  @asterisk_sound_files[text]
         end
       end
       false
     end
-    
+
     ##
     # This is a work around until the $currentCall.getHeaderMap works, currently a bug in the Ruby shim
     #
@@ -638,17 +638,17 @@ class TropoAGItate
     # @return [Hash] the converted native Ruby hash
     def hashmap_to_hash(hashmap)
       # We get the Java iterator off of the object
-      iter = hashmap.keySet.iterator 
+      iter = hashmap.keySet.iterator
       hash = {}
-      
+
       # We then iterate through the HashMap and build a native Ruby hash
-      while iter.hasNext 
-        key = iter.next 
+      while iter.hasNext
+        key = iter.next
         hash[key] = hashmap.get(key)
       end
       hash
     end
-    
+
     ##
     # Logs formatted errors to the Tropo debugger
     #
@@ -661,7 +661,7 @@ class TropoAGItate
       show "Error: Unable to execute the #{action} request. call_active?", @current_call.isActive
       show 'Error output:', error
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
-      
+
       # Return an error based on the error encountered
       case error.to_s
       when '511 result=Command Not Permitted on a dead channel'
@@ -670,11 +670,11 @@ class TropoAGItate
         @agi_response + "-1\n"
       end
     end
-    
+
     ##
     # Parses the destinations sent over the AGI protocol into an array of dialable destinations
     # Also converts the Asterisk style of SIP/ to sip:, the proper SIP URI format
-    # 
+    #
     # @param [Array] the unformatted destinations to be parsed from AGI
     #
     # @return [Array] an array of destinations
@@ -696,7 +696,7 @@ class TropoAGItate
     rescue => e
       show 'parse_destinations method error:', e
     end
-    
+
     ##
     # Parses the STREAM FILE for input to see if it is a JSON string and if so return the Hash
     #
@@ -708,10 +708,10 @@ class TropoAGItate
     rescue => e
       nil
     end
-    
+
     ##
     # ====> SHOULD BE USED TO EXTRACT AND USE THESE OPTIONS LATER <====
-    # 
+    #
     # Removes the options details on the dial string
     #
     # @param[String] the destination to strip any extraneous items from
@@ -720,7 +720,7 @@ class TropoAGItate
     def remove_options(destination)
       destination.split('"')[0]
     end
-    
+
     ##
     # Preps @user_vars to be set as headers
     #
@@ -733,7 +733,7 @@ class TropoAGItate
       headers
     end
   end#end class Commands
-  
+
   ##
   # Creates a new instance of TropoAGItate
   #
@@ -755,10 +755,10 @@ class TropoAGItate
       show 'Session sent to default backup location', 'Now aborting the script'
       abort
   end
-  
+
   ##
   # Executes the loop that sends and receives the AGI messages to and from the AGI server
-  # 
+  #
   # @return [Boolean] whether the socket is open or not
   def run
     if create_socket_connection
@@ -795,7 +795,7 @@ class TropoAGItate
     failover(@tropo_agi_config['tropo']['next_sip_uri'])
     false
   end
-  
+
   ##
   # Closes the socket
   #
@@ -807,7 +807,7 @@ class TropoAGItate
     end
     @agi_client.closed?
   end
-  
+
   ##
   # Sends the initial AGI message to the AGI server
   # AGI: http://www.voip-info.org/wiki/view/Asterisk+AGI
@@ -822,7 +822,7 @@ class TropoAGItate
     headers = @commands.getheaders
     rdnis = 'unknown'
     rdnis = headers['x-sbc-diversion'] if headers['x-sbc-diversion']
-    
+
 <<-MSG
 agi_network: yes
 agi_network_script: #{agi_context}
@@ -844,13 +844,13 @@ agi_context: #{agi_context}
 agi_extension: 1
 agi_priority: 1
 agi_enhanced: 0.0
-agi_accountcode: 
+agi_accountcode:
 agi_threadid: #{@current_call.id}
 tropo_headers: #{headers.to_json if headers.keys.length > 0}
 
 MSG
   end
-  
+
   ##
   # Executes the given command from AGI to Tropo
   #
@@ -867,7 +867,7 @@ MSG
       if options[:command].downcase == 'variable'
         @commands.user_vars(options)
       elsif options[:command].downcase == 'callerid' || options[:command].downcase == 'calleridname'
-        @commands.callerid(options) 
+        @commands.callerid(options)
       end
     when 'exec', 'stream', 'channel'
       @commands.send(options[:command].downcase.to_sym, options)
@@ -880,7 +880,7 @@ MSG
       return "510 result=Invalid or unknown Command\n"
     end
   end
-  
+
   ##
   # Takes the AGI response from the AGI server, breaks into the arguments
   # and returns the commands to be executed stripped of quotes
@@ -899,7 +899,7 @@ MSG
     show 'command', command
     command
   end
-  
+
   ##
   # Parses the arguments to strip quotes, put into an array or a hash if JSON
   #
@@ -910,7 +910,7 @@ MSG
     begin
       args = JSON.parse strip_quotes(parts.clone)
     rescue
-      # Split with a RegEx, since we may have commas inside of elements as well as 
+      # Split with a RegEx, since we may have commas inside of elements as well as
       # delimitting them
       elements = parts.split(/(,|\r\n|\n|\r)(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))/m)
       # Get rid of the extraneous commas
@@ -922,7 +922,7 @@ MSG
     end
     args
   end
-  
+
   ##
   # This method fails over to the backup SIP URI or plays the error message if no backup
   # provided
@@ -943,7 +943,7 @@ MSG
       end
     end
   end
-  
+
   ##
   # Load the configuration from the current account FTP/WebDAV files of Tropo
   #
@@ -951,16 +951,16 @@ MSG
   def tropo_agi_config
     # Find the account number this app is running under
     account_data = fetch_account_data
-    
+
     # Try from the www directory on the Tropo file system
     result = fetch_config_file "/#{account_data[1]}/www/tropo_agi_config/tropo_agi_config.yml"
     return YAML.load(result.body) if result.code == '200'
     show 'Can not find config file.', result.body
-    
+
     # No config file found
     raise RuntimeError, "Configuration file not found"
   end
-  
+
   ##
   # Fetches the account data
   #
@@ -968,7 +968,7 @@ MSG
   def fetch_account_data
     @current_app.baseDir.to_s.match /(\d+)$/
   end
-  
+
   ##
   # Fetches the configuration file
   #
@@ -981,12 +981,12 @@ MSG
       http.get resource
     }
   end
-end#end class TropoAGItate 
+end#end class TropoAGItate
 
 # Are we running as a spec, or is this live?
 if @tropo_testing.nil?
   log "====> Running Tropo-AGI <===="
-  
+
   # If this is an outbound request place the call
   # see: https://www.tropo.com/docs/scripting/call.htm
   if $destination
@@ -999,15 +999,15 @@ if @tropo_testing.nil?
     options[:network]   = $network || 'SMS'
     # Time tropo will wait before hanging up, default is 30
     options[:timeout]   = $timeout if $timeout
-    
+
     # If voice turn the phone number into a Tel URI, but only if not a SIP URI
     $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice' && $destination[0..2] != 'sip'
-    
+
     log "====> Calling to: #{$destination} - with these options: #{options.inspect} <===="
     # Place the call
     call $destination, options
   end
-  
+
   # If we have an active call, start running the AGI client
   if $currentCall
     # Create the instance of TropoAGItate with Tropo's currentCall object

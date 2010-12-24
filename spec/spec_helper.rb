@@ -7,7 +7,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'agi_config'))
 # em-spec/rspec Out for now since it is not Rspec 2.x compat
 
 RSpec.configure do |config|
-  
+
 end
 
 # NOTE!
