@@ -844,8 +844,8 @@ agi_context: #{agi_context}
 agi_extension: 1
 agi_priority: 1
 agi_enhanced: 0.0
-agi_accountcode:
-agi_threadid: #{@current_call.id}
+agi_accountcode: 0
+agi_threadid: #{Thread.current.to_s}
 tropo_headers: #{headers.to_json if headers.keys.length > 0}
 
 MSG

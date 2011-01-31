@@ -47,8 +47,8 @@ agi_context: #{agi_uri.path[1..-1]}
 agi_extension: 1
 agi_priority: 1
 agi_enhanced: 0.0
-agi_accountcode:
-agi_threadid: #{@current_call.id}
+agi_accountcode: 0
+agi_threadid: #{Thread.current.to_s}
 tropo_headers: {\"kermit\":\"green\",\"bigbird\":\"yellow\"}
 
 MSG
