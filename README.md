@@ -119,7 +119,7 @@ Refer to the wiki [Supported Adhearsion and Asterisk Gateway Interface (AGI) Com
 Asterisk Sound Files Available
 ------------------------------
 
-Refer to the wiki [Asterisk Core Sounds Available](http://github.com/tropo/tropo-agitate/wiki/Built-In-Asterisk-Sound-Files) page.
+Refer to the wiki [Asterisk Core Sounds Available](http://github.com/tropo/tropo-agitate/wiki/Built-In-Asterisk-Sound-Files) page. This will also let you know how to add your own custom sound files.
 
 Adhearsion Dialplan Examples
 ----------------------------
