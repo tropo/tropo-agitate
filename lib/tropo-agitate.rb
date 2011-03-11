@@ -1,7 +1,7 @@
-%w(rubygems socket json net/http uri).each { |lib| require lib }
+%w(rubygems yaml socket json net/http uri).each { |lib| require lib }
 #####
 # This Ruby Script Emulates the Asterisk Gateway Interface (AGI)
-# VERSION = '0.1.0'
+# VERSION = '0.1.3'
 #####
 
 # If we are testing, then add some methods, $currentCall will be nil if a call did not start this session
@@ -17,7 +17,6 @@ if $currentCall.nil? && $destination.nil?
 end
 
 #########
-
 # @author Jason Goecke
 class TropoAGItate
   module Helpers
@@ -190,25 +189,28 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def file(options={})
       check_state
-
+      
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
-        options[:args][0] = options[:args][0][0..-15]
-
-        asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
-        if asterisk_sound_url
-          prompt = asterisk_sound_url
+        prompt, escape_digits = extract_prompt_and_escape_digits(options[:args][0])
+        
+        asterisk_sound_url = fetch_asterisk_sound(prompt)
+        prompt = asterisk_sound_url if asterisk_sound_url
+        
+        if escape_digits.nil?
+          @current_call.say prompt, :voice => @tropo_voice
+          result = @agi_response + "0 endpos=0\n"
         else
-          prompt = options[:args][0]
+          response = @current_call.ask prompt, { 'choices' => create_choices(escape_digits), 'choiceMode' => 'keypad' }
+          result = @agi_response + response.value[0].to_s + " endpos=0\n"
         end
-
-        response = @current_call.ask prompt, { 'choices' => '[1 DIGIT], *, #', 'choiceMode' => 'keypad' }
       end
       show 'File response', response
-      @agi_response + response.value[0].to_s + " endpos=0\n"
+      result
     rescue => e
       log_error(this_method, e)
     end
+    alias :streamfile :file
 
     ##
     # Grabs all of the SIP headers off of the current session/call
@@ -405,7 +407,7 @@ class TropoAGItate
     def saydigits(options={})
       check_state
 
-      ssml = "<say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as>"
+      ssml = "<speak><say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as></speak>"
       @current_call.say ssml, :voice => @tropo_voice
       @agi_response + "0\n"
     rescue => e
@@ -597,7 +599,7 @@ class TropoAGItate
     end
 
     private
-
+    
     ##
     # Automatically answers the call/session if not explicityly done
     def check_state
@@ -606,12 +608,41 @@ class TropoAGItate
         raise RuntimeError, '511 result=Command Not Permitted on a dead channel'
       when 'RINGING'
         @current_call.answer
-        # Sleep to allow audio to settle
+        # Sleep to allow audio to settle, in the case of Skype
         sleep 2
       end
       true
     end
-
+    
+    ##
+    # Converts the choices passed in a STREAM FILE into the requisite comma-delimitted format for Tropo
+    #
+    # @param [required, String] escape_digits to convert
+    def create_choices(escape_digits)
+      choices = ''
+      # 1.3.1 does not have the each_char method on the String class
+      if JRUBY_VERSION == '1.3.1'
+        escape_digits.each_byte { |char| choices = choices + char.chr + ','  }
+      else
+        escape_digits.each_char { |char| choices = choices + char + ','  }
+      end
+      choices.chop
+    end
+    
+    ##
+    # Extracts the prompt and escape digits from a STREAM FILE request
+    #
+    # @param [required, String] original_string to extract the prompt and escape digits out of
+    def extract_prompt_and_escape_digits(original_string)
+      original_string.gsub!('"', '')
+      match_data = original_string.match /\d{1,}\#$|\d{1,}$|\d{1,}\*\#$|\d{1,}\#\*$|\d{1,}\*$/
+      if match_data.nil?
+        return original_string, nil
+      else
+        return match_data.pre_match.rstrip, match_data[0]
+      end
+    end
+    
     ##
     # Returns the URI location of the Asterisk sound file if it is available
     #

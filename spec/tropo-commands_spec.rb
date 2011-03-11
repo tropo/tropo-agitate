@@ -107,4 +107,23 @@ describe "TropoAGItate::TropoCommands" do
     options = { :args => ["en-us"] }
     @tropo_commands.recognizer(options).should == "200 result=0\n"
   end
+  
+  it "should support a stream file without escape digits" do
+    options = { :args => ["\"hey there!\""] }
+    @tropo_commands.file(options).should == "200 result=0 endpos=0\n"
+  end
+  
+  it "should support a stream file with escape digits" do
+    options = { :args => ["\"hey there!\" \"1234567890#\""] }
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    
+    options = { :args => ["\"hey there!\" \"1234567890#*\""] }
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    
+    options = { :args => ["\"hey there!\" \"1234567890*\""] }
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    
+    options = { :args => ["\"hey there!\" \"1234\""] }
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+  end
 end

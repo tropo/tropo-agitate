@@ -132,7 +132,6 @@ MSG
     command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
     command.should == "200 result=1 (green)\n"
 
-
     command = @tropo_agitate.execute_command("EXEC monitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
     command.should == "200 result=0\n"
 
@@ -141,6 +140,17 @@ MSG
 
     command = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
     command.should == "200 result=0\n"
+  end
+  
+  it "should handle the STREAM FILE requests" do
+    command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys 1234567890*#')
+    command.should == "200 result=57 endpos=0\n"
+    
+    command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys')
+    command.should == "200 result=0 endpos=0\n"
+    
+    command = @tropo_agitate.execute_command('STREAM STREAMFILE tt-monkeys 1234567890*#')
+    command.should == "200 result=57 endpos=0\n"
   end
 
   it "should return the account data from a directory lookup" do

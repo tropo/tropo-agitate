@@ -195,6 +195,13 @@ These Adhearsion dialplan examples are also available in the 'examples' director
     execute 'say', { :prompt => 'I like to have weasels in my cloud.', :voice => 'simon' }.to_json
   }
 
+  # Supports STREAM FILE with and without escape digts
+  # Note, any digits at the end of the string will always be treated as escape digits
+  stream_file_example {
+	raw_response "STREAM FILE tt-monkeys 1234567890*#"
+    raw_response "STREAM FILE tt-monkeys"
+  }
+ 
   # If this is a Tropo call, then all of the SIP headers for the session are available
   show_call_data {
     ahn_log.tropo_headers_str.debug tropo_headers
@@ -266,8 +273,7 @@ These Adhearsion dialplan examples are also available in the 'examples' director
   # Start menu example
   # Related Tropo method: https://www.tropo.com/docs/scripting/ask.htm
   menu_example {
-    menu 'welcome', 'for spanish press 4',
-         :timeout => 8.seconds, :tries => 3 do |link|
+    menu 'Welcome. For Shipments press 1. For ordering press 2. For a representative push 3 or for Spanish press 4', :timeout => 8.seconds, :tries => 3 do |link|
       link.shipment_status  1
       link.ordering         2
       link.representative   3
