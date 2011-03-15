@@ -1,7 +1,7 @@
 %w(rubygems yaml socket json net/http uri).each { |lib| require lib }
 #####
 # This Ruby Script Emulates the Asterisk Gateway Interface (AGI)
-# VERSION = '0.1.3'
+# VERSION = '0.1.4'
 #####
 
 # If we are testing, then add some methods, $currentCall will be nil if a call did not start this session
