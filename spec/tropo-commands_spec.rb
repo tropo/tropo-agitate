@@ -125,5 +125,11 @@ describe "TropoAGItate::TropoCommands" do
     
     options = { :args => ["\"hey there!\" \"1234\""] }
     @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    
+    options = { :args => ["\"hey there!\" \"#\""] }
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+
+    options = { :args => ["\"hey there!\" \"*\""] }
+    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
   end
 end

@@ -635,7 +635,7 @@ class TropoAGItate
     # @param [required, String] original_string to extract the prompt and escape digits out of
     def extract_prompt_and_escape_digits(original_string)
       original_string.gsub!('"', '')
-      match_data = original_string.match /\d{1,}\#$|\d{1,}$|\d{1,}\*\#$|\d{1,}\#\*$|\d{1,}\*$/
+      match_data = original_string.match /\d{1,}\#$|\d{1,}$|\d{1,}\*\#$|\d{1,}\#\*$|\d{1,}\*|\#|\*$/
       if match_data.nil?
         return original_string, nil
       else
