@@ -921,11 +921,11 @@ MSG
   # @return [Hash] the command
   def parse_command(data)
     # Break down the command into its component parts
-    parts = data.match /^(\w+)\s*(\w+)?\s*(.*)?$/
+    parts = data.match /^(\w+)\s*(\w+|"\w+")?\s*(.*)?$/
     return if parts.nil?
     part1, part2, part3 = parts[1], parts[2], parts[3]
     command = { :action => part1.downcase }
-    command.merge!({ :command => part2.downcase }) unless  part2.nil?
+    command.merge!({ :command => strip_quotes(part2.downcase) }) unless  part2.nil?
     command.merge!({ :args => parse_args(part3) }) unless part3.nil? || part3.empty?
     show 'command', command
     command

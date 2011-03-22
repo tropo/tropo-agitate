@@ -142,6 +142,14 @@ MSG
     command.should == "200 result=0\n"
   end
   
+  it "should execute the command as Asterisk-Java would pass" do
+    command = @tropo_agitate.execute_command('EXEC "playback" "tt-monkeys"')
+    command.should == "200 result=0\n"
+    
+    command = @tropo_agitate.execute_command('STREAM FILE "tt-monkeys" "1234567890*#"')
+    command.should == "200 result=57 endpos=0\n"
+  end
+  
   it "should handle the STREAM FILE requests" do
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys 1234567890*#')
     command.should == "200 result=57 endpos=0\n"
