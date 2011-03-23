@@ -1,7 +1,7 @@
 %w(rubygems yaml socket json net/http uri).each { |lib| require lib }
 #####
 # This Ruby Script Emulates the Asterisk Gateway Interface (AGI)
-# VERSION = '0.1.5'
+# VERSION = '0.1.6'
 #####
 
 # If we are testing, then add some methods, $currentCall will be nil if a call did not start this session
@@ -13,6 +13,20 @@ if $currentCall.nil? && $destination.nil?
     def show(val)
       log(val)
     end
+  end
+end
+
+# We patch the Hash class to symbolize our keys
+class Hash
+  def symbolize_keys
+    inject({}) do |options, (key, value)|
+      options[(key.to_sym rescue key) || key] = value
+      options
+    end
+  end
+  
+  def symbolize_keys!
+    self.replace(self.symbolize_keys)
   end
 end
 
@@ -121,7 +135,7 @@ class TropoAGItate
         prompt = options[:args]['prompt']
       end
 
-      response = @current_call.ask prompt, options[:args]
+      response = @current_call.ask prompt, options[:args].symbolize_keys!
       if response.value == 'NO_SPEECH' || response.value == 'NO_MATCH'
         result = { :interpretation => response.value }
       else
@@ -313,6 +327,45 @@ class TropoAGItate
     alias :saynumber :playback
     alias :say :playback
 
+    ##
+    # Reads a #-terminated string of digits a certain number of times from the user in to the given variable.
+    # AGI: https://wiki.asterisk.org/wiki/display/AST/Application_Read
+    # Tropo: https://www.tropo.com/docs/scripting/ask.htm
+    #
+    # @param [Hash] the options used for the Tropo ask method
+    #
+    # @return [String] the response in the AGI raw form
+    def read(options={})
+      check_state
+            
+      # Set the prompt
+      prompt = options[:args][1]
+      asterisk_sound_url = fetch_asterisk_sound(prompt)
+      prompt = asterisk_sound_url if asterisk_sound_url
+      
+      if options[:args][2]
+        choices = "[1-#{options[:args][2]} DIGITS]"
+      else
+        choices = '[1-255 DIGITS]'
+      end
+      
+      attempts = options[:args][4] || 1
+      timeout  = options[:args][5].to_f
+      
+      response = nil
+      attempts.to_i.times do
+        response = @current_call.ask prompt, { :choices    => choices, 
+                                               :choiceMode => 'keypad',
+                                               :terminator => '#',
+                                               :timeout    => timeout }
+        break if response.value
+      end
+
+      # Set the variable the user has specified for the value to insert into
+      @user_vars[options[:args][0]] = response.value
+      @agi_response + "0\n"
+    end
+    
     ##
     # Used to change the voice being used for speech recognition/ASR
     #

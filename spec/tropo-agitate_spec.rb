@@ -23,6 +23,14 @@ describe "TropoAGItate" do
     @tropo_agitate.instance_of?(TropoAGItate).should == true
   end
 
+  describe 'Hash' do
+    it 'should symbolize our keys in a hash' do
+      h = { 'foo' => 'yes', 'bar' => 'no' }
+      p h.symbolize_keys!
+      h.should == { :foo => 'yes', :bar => 'no' }
+    end
+  end
+  
   it "should create a properly formatted initial message" do
     agi_uri  = URI.parse @tropo_agitate.tropo_agi_config['agi']['uri_for_local_tests']
     message  = @tropo_agitate.initial_message(agi_uri.host, agi_uri.port, agi_uri.path[1..-1])
@@ -160,9 +168,14 @@ MSG
     command = @tropo_agitate.execute_command('STREAM STREAMFILE tt-monkeys 1234567890*#')
     command.should == "200 result=57 endpos=0\n"
   end
-
+  
   it "should return the account data from a directory lookup" do
     @tropo_agitate.fetch_account_data[1].should == '49767'
     @tropo_agitate.fetch_account_data[1].should == '49768'
+  end
+  
+  it "should execute a read" do
+    command = @tropo_agitate.execute_command('EXEC READ pin,tt monkeys,5,,3,10')
+    command.should == "200 result=0\n"
   end
 end

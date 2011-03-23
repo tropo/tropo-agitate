@@ -132,4 +132,9 @@ describe "TropoAGItate::TropoCommands" do
     options = { :args => ["\"hey there!\" \"*\""] }
     @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
   end
+  
+  it "should execute a read" do
+    options = { :args => ["pin", "tt monkeys", "5", "", "3", "10"] }
+    @tropo_commands.file(options).should == "200 result=0 endpos=0\n"
+  end
 end
