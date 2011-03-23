@@ -14,8 +14,8 @@ describe "TropoAGItate" do
     FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json",
                          :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
 
-    @current_call = CurrentCall.new
-    $incomingCall = IncomingCall.new
+    @current_call  = CurrentCall.new
+    $incomingCall  = IncomingCall.new
     @tropo_agitate = TropoAGItate.new(@current_call, CurrentApp.new)
   end
 
@@ -26,7 +26,7 @@ describe "TropoAGItate" do
   describe 'Hash' do
     it 'should symbolize our keys in a hash' do
       h = { 'foo' => 'yes', 'bar' => 'no' }
-      p h.symbolize_keys!
+      h.symbolize_keys!
       h.should == { :foo => 'yes', :bar => 'no' }
     end
   end

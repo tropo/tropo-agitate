@@ -337,20 +337,22 @@ class TropoAGItate
     # @return [String] the response in the AGI raw form
     def read(options={})
       check_state
-            
+      
+      # Check to see if the READ arguments were sent in quotes, like from Asterisk-Java
+      options[:args] = options[:args][0].split(',', -4) if options[:args].length == 1
+      
+      # Set defaults
+      prompt, choices, attempts, timeout = 'silence', '[1-255 DIGITS]', 1, 30
+      
       # Set the prompt
-      prompt = options[:args][1]
+      prompt = options[:args][1]  if options[:args][1] != ""
       asterisk_sound_url = fetch_asterisk_sound(prompt)
       prompt = asterisk_sound_url if asterisk_sound_url
       
-      if options[:args][2]
-        choices = "[1-#{options[:args][2]} DIGITS]"
-      else
-        choices = '[1-255 DIGITS]'
-      end
-      
-      attempts = options[:args][4] || 1
-      timeout  = options[:args][5].to_f
+      # Set other values if provided
+      choices = "[1-#{options[:args][2]} DIGITS]" unless options[:args][2].nil? || options[:args][2].empty?
+      attempts = options[:args][4] unless options[:args][4].nil? || options[:args][4].empty?
+      timeout = options[:args][5].to_f unless options[:args][5].nil? || options[:args][5].empty?
       
       response = nil
       attempts.to_i.times do
@@ -849,6 +851,7 @@ class TropoAGItate
       while @current_call.isActive
         begin
           command = @agi_client.gets
+          show 'Raw string: ', command
           result = execute_command(command)
           response = @agi_client.write(result)
         rescue => e
