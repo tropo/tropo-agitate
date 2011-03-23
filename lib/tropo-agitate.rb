@@ -364,7 +364,7 @@ class TropoAGItate
       end
 
       # Set the variable the user has specified for the value to insert into
-      @user_vars[options[:args][0]] = response.value
+      @user_vars[options[:args][0].downcase] = response.value
       @agi_response + "0\n"
     end
     
