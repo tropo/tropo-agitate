@@ -586,7 +586,12 @@ class TropoAGItate
         @user_vars[strip_quotes(key_value[0]).downcase] = strip_quotes(key_value[1])
         @agi_response + "0\n"
       when 'get'
-        @agi_response + '1 (' + @user_vars[strip_quotes(options[:args][0]).downcase] + ")\n"
+        if @user_vars[strip_quotes(options[:args][0]).downcase]
+          @agi_response + '1 (' + @user_vars[strip_quotes(options[:args][0]).downcase] + ")\n"
+        else
+          # Variable has not been set
+          @agi_response + "0\n"
+        end
       end
     rescue => e
       log_error(this_method, e)

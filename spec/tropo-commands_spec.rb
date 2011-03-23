@@ -59,7 +59,7 @@ describe "TropoAGItate::TropoCommands" do
     result = @tropo_commands.user_vars({ :action => 'get', :args => ["\"foobar\""]})
     result.should == "200 result=1 (green)\n"
     result = @tropo_commands.user_vars({ :action => 'get', :args => ["\"novar\""]})
-    result.should == "200 result=-1\n"
+    result.should == "200 result=0\n"
   end
 
   it "should return a valid string when a dial is requested" do
