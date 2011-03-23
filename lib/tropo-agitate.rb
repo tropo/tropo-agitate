@@ -215,7 +215,10 @@ class TropoAGItate
           @current_call.say prompt, :voice => @tropo_voice
           result = @agi_response + "0 endpos=0\n"
         else
-          response = @current_call.ask prompt, { 'choices' => create_choices(escape_digits), 'choiceMode' => 'keypad' }
+          # Timeout is set to one so we return immediately after playback
+          response = @current_call.ask prompt, { :choices    => create_choices(escape_digits), 
+                                                 :choiceMode => 'keypad',
+                                                 :timeout    => 1 }
           result = @agi_response + response.value[0].to_s + " endpos=0\n"
         end
       end
