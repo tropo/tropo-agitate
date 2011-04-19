@@ -1035,6 +1035,8 @@ MSG
           show 'Unable to transfer to your next_sip_uri location', e
         end
       else
+        error_message = 'We are unable to connect to the fail over sip U R I.  Please try your call again later.'
+        @current_call.log "====> #{error_message} <===="
         @current_call.say error_message, :voice => @tropo_voice
         @current_call.hangup
       end
