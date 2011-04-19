@@ -933,7 +933,7 @@ agi_callingpres: 0
 agi_callingani2: 0
 agi_callington: 0
 agi_callingtns: 0
-agi_dnid: 1000
+agi_dnid: #{@current_call.calledID}
 agi_rdnis: #{rdnis}
 agi_context: #{agi_context}
 agi_extension: 1
