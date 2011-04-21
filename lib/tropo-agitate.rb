@@ -201,9 +201,7 @@ class TropoAGItate
       when 'callFailure' then 'CHANUNAVAIL'
       else 'CONGESTION'
       end
-      show "Channel Variables: #{@user_vars.inspect}"
       @agi_response + "0\n"
-
     rescue => e
       log_error(this_method, e)
     end
