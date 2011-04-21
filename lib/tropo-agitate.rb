@@ -177,12 +177,22 @@ class TropoAGItate
       # cause problems if converted to JSON (specifically: anything with
       # parenthesis in the name)
       vars = @user_vars.clone
-      options[:callerID] = vars.delete('CALLERID(num)') if vars.has_key?('CALLERID(num)')
+
+      # Convert Asterisk app_dial inputs to Tropo syntax
       options[:timeout]  = args.shift.to_i if args.count
+
+      # TODO: We may want to provide some compatibility with Asterisk dial flags
+      # like m for MOH, A() to play announcement to called party,
+      # D() for post-dial DTMF, L() for call duration limits
+      #astflags = args.shift if args.count
+
+      options[:callerID] = vars.delete('CALLERID(num)') if vars.has_key?('CALLERID(num)')
       options[:headers]  = set_headers(vars)
+
       show "Destination: #{destinations.inspect}, Options: #{options.inspect}"
       result = @current_call.transfer destinations, options
-      show "Result #{result.inspect}"
+
+      # Map the Tropo result to the Asterisk DIALSTATUS channel variable
       @user_vars['DIALSTATUS'] = case result.name.downcase
       when 'transfer'    then 'ANSWER'
       when 'success'     then 'ANSWER'
