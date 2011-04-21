@@ -804,7 +804,7 @@ class TropoAGItate
         if destination.match /^(sip|SIP|tel)(\:|\/)\w{1,}$/
           destinations_array << destination.gsub('SIP/', 'sip:')
         else
-          destinations_array << remove_options(destination).gsub('SIP/', 'sip:')
+          destinations_array << destination.gsub('SIP/', 'sip:')
         end
       end
       destinations_array
@@ -822,18 +822,6 @@ class TropoAGItate
       JSON.parse string[0..-leftchop].gsub("\\", '')
     rescue => e
       nil
-    end
-
-    ##
-    # ====> SHOULD BE USED TO EXTRACT AND USE THESE OPTIONS LATER <====
-    #
-    # Removes the options details on the dial string
-    #
-    # @param[String] the destination to strip any extraneous items from
-    #
-    # @return [Array] the destination
-    def remove_options(destination)
-      destination.split('"')[0]
     end
 
     ##
