@@ -6,7 +6,7 @@ end
 
 group :development do
   gem 'eventmachine'
-  gem 'rspec'
+  gem 'rspec', '>= 2.0.0'
   gem 'fakeweb'
   #gem 'em-spec'
 end
