@@ -879,6 +879,8 @@ class TropoAGItate
   # @return nil
   def create_socket_connection
     @agi_uri = URI.parse @tropo_agi_config['agi']['uri']
+    @agi_uri.port = 4573 if @agi_uri.port.nil?
+    @current_call.log "Connecting to AGI server at #{@agi_uri.host}:#{@agi_uri.port}"
     @agi_client = TCPSocket.new(@agi_uri.host, @agi_uri.port)
     @agi_client.write(initial_message(@agi_uri.host, @agi_uri.port, @agi_uri.path[1..-1]))
     true
