@@ -169,12 +169,31 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def dial(options={})
       check_state
+      args = options.delete(:args) || {}
+      destinations = parse_destinations(args.shift.split('&'))
+      options = {}
 
-      destinations = parse_destinations(options[:args])
-      options = { :callerID => '4155551212' }
-      options['headers'] = set_headers
-      @current_call.transfer destinations, options
+      # Copy the channel variables hash.  We need to remove certain variables that
+      # cause problems if converted to JSON (specifically: anything with
+      # parenthesis in the name)
+      vars = @user_vars.clone
+      options[:callerID] = vars.delete('CALLERID(num)') if vars.has_key?('CALLERID(num)')
+      options[:timeout]  = args.shift.to_i if args.count
+      options[:headers]  = set_headers(vars)
+      show "Destination: #{destinations.inspect}, Options: #{options.inspect}"
+      result = @current_call.transfer destinations, options
+      show "Result #{result.inspect}"
+      @user_vars['DIALSTATUS'] = case result.name.downcase
+      when 'transfer'    then 'ANSWER'
+      when 'success'     then 'ANSWER'
+      when 'timeout'     then 'NOANSWER'
+      when 'error'       then 'CONGESTION'
+      when 'callFailure' then 'CHANUNAVAIL'
+      else 'CONGESTION'
+      end
+      show "Channel Variables: #{@user_vars.inspect}"
       @agi_response + "0\n"
+
     rescue => e
       log_error(this_method, e)
     end
@@ -771,17 +790,13 @@ class TropoAGItate
     #
     # @return [Array] an array of destinations
     def parse_destinations(destinations)
-      if destinations.instance_of? String
-        destinations_array << remove_options(destinations)[0].gsub('SIP/', 'sip:')
-      else
-        destinations_array = []
-        destinations.each do |destination|
-          destination = destination.reverse.chop.reverse if destination[0] == 34
-          if destination.match /^(sip|SIP|tel)(\:|\/)\w{1,}$/
-            destinations_array << destination.gsub('SIP/', 'sip:')
-          else
-            destinations_array << remove_options(destination).gsub('SIP/', 'sip:')
-          end
+      destinations_array = []
+      destinations.each do |destination|
+        destination = destination.reverse.chop.reverse if destination[0] == 34
+        if destination.match /^(sip|SIP|tel)(\:|\/)\w{1,}$/
+          destinations_array << destination.gsub('SIP/', 'sip:')
+        else
+          destinations_array << remove_options(destination).gsub('SIP/', 'sip:')
         end
       end
       destinations_array
@@ -817,9 +832,10 @@ class TropoAGItate
     # Preps @user_vars to be set as headers
     #
     # @return [Hash] the formatted headers
-    def set_headers
+    def set_headers(vars)
+      show "Headers to map: #{vars.inspect}"
       headers = {}
-      @user_vars.each do |k, v|
+      vars.each do |k, v|
         headers['x-tropo-' + k] = v
       end
       headers
