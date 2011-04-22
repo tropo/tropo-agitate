@@ -11,7 +11,7 @@ if $currentCall.nil? && $destination.nil?
       val
     end
     def show(val)
-      log(val)
+      log("====> #{val} <====")
     end
   end
 end
@@ -46,23 +46,20 @@ class TropoAGItate
       text
     end
 
-    private
-
     ##
     # Formats the output to the log for consistency
     #
-    # @param [String] the description of the output to the log
-    # @param [String] the output to be emitted to the log
+    # @param [String] string to output to the log
     # @return nil
-    def show(str, var)
-      log "====> #{str}: #{var.inspect} <===="
+    def show(str)
+      log "====> #{str} <===="
     end
 
     ##
     # Provides the current method's name
     #
     # @return [String] the name of the current method
-    def self.this_method
+    def this_method
       caller[0]
       # caller[0][/`([^']*)'/, 1]
     end
@@ -107,7 +104,7 @@ class TropoAGItate
       if @current_call.state == 'RINGING'
         @current_call.answer
       else
-        show 'Warning - invalid call state to invoke an answer:', @current_call.state
+        show "Warning - invalid call state to invoke an answer: #{@current_call.state.inspect}"
       end
       @agi_response + "0\n"
     rescue => e
@@ -172,11 +169,38 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def dial(options={})
       check_state
+      args = options.delete(:args) || {}
+      destinations = parse_destinations(args.shift.split('&'))
+      options = {}
 
-      destinations = parse_destinations(options[:args])
-      options = { :callerID => '4155551212' }
-      options['headers'] = set_headers
-      @current_call.transfer destinations, options
+      # Copy the channel variables hash.  We need to remove certain variables that
+      # cause problems if converted to JSON (specifically: anything with
+      # parenthesis in the name)
+      vars = @user_vars.clone
+
+      # Convert Asterisk app_dial inputs to Tropo syntax
+      options[:timeout]  = args.shift.to_i if args.count
+
+      # TODO: We may want to provide some compatibility with Asterisk dial flags
+      # like m for MOH, A() to play announcement to called party,
+      # D() for post-dial DTMF, L() for call duration limits
+      #astflags = args.shift if args.count
+
+      options[:callerID] = vars.delete('CALLERID(num)') if vars.has_key?('CALLERID(num)')
+      options[:headers]  = set_headers(vars)
+
+      show "Destination: #{destinations.inspect}, Options: #{options.inspect}"
+      result = @current_call.transfer destinations, options
+
+      # Map the Tropo result to the Asterisk DIALSTATUS channel variable
+      @user_vars['DIALSTATUS'] = case result.name.downcase
+      when 'transfer'    then 'ANSWER'
+      when 'success'     then 'ANSWER'
+      when 'timeout'     then 'NOANSWER'
+      when 'error'       then 'CONGESTION'
+      when 'callFailure' then 'CHANUNAVAIL'
+      else 'CONGESTION'
+      end
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -222,7 +246,7 @@ class TropoAGItate
           result = @agi_response + response.value[0].to_s + " endpos=0\n"
         end
       end
-      show 'File response', response
+      show "File response: #{response.inspect}"
       result
     rescue => e
       log_error(this_method, e)
@@ -280,7 +304,7 @@ class TropoAGItate
     #
     # @return [String] the response in AGI raw form
     def method_missing(method, *args)
-      show "Invalid or unknown command", args[1]
+      show "Invalid or unknown command: #{method.inspect}"
       return "510 result=Invalid or unknown Command\n"
     end
 
@@ -530,7 +554,7 @@ class TropoAGItate
         when '#'
           playback({ :args => [ base_uri + "#.wav" ] })
         else
-          show 'Cannot play DTMF with:', char
+          show "Cannot play DTMF with: #{char.inspect}"
         end
       end
       @agi_response + "0\n"
@@ -586,11 +610,11 @@ class TropoAGItate
       case options[:action]
       when 'set'
         key_value = options[:args][0].split(' ')
-        @user_vars[strip_quotes(key_value[0]).downcase] = strip_quotes(key_value[1])
+        @user_vars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
         @agi_response + "0\n"
       when 'get'
-        if @user_vars[strip_quotes(options[:args][0]).downcase]
-          @agi_response + '1 (' + @user_vars[strip_quotes(options[:args][0]).downcase] + ")\n"
+        if @user_vars[strip_quotes(options[:args][0])]
+          @agi_response + '1 (' + @user_vars[strip_quotes(options[:args][0])] + ")\n"
         else
           # Variable has not been set
           @agi_response + "0\n"
@@ -664,7 +688,7 @@ class TropoAGItate
     private
     
     ##
-    # Automatically answers the call/session if not explicityly done
+    # Automatically answers the call/session if not explicitly done
     def check_state
       case @current_call.state
       when 'DISCONNECTED'
@@ -752,8 +776,9 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def log_error(action, error)
       @current_call.log '====> Tropo AGI ACTION ERROR - Start <===='
-      show "Error: Unable to execute the #{action} request. call_active?", @current_call.isActive
-      show 'Error output:', error
+      show "Error: Unable to execute the #{action} request. call_active? #{@current_call.isActive.inspect}"
+      show "Error output: #{error.inspect}"
+      show "Trace: #{error.backtrace.join("\n")}"
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
 
       # Return an error based on the error encountered
@@ -773,22 +798,18 @@ class TropoAGItate
     #
     # @return [Array] an array of destinations
     def parse_destinations(destinations)
-      if destinations.instance_of? String
-        destinations_array << remove_options(destinations)[0].gsub('SIP/', 'sip:')
-      else
-        destinations_array = []
-        destinations.each do |destination|
-          destination = destination.reverse.chop.reverse if destination[0] == 34
-          if destination.match /^(sip|SIP|tel)(\:|\/)\w{1,}$/
-            destinations_array << destination.gsub('SIP/', 'sip:')
-          else
-            destinations_array << remove_options(destination).gsub('SIP/', 'sip:')
-          end
+      destinations_array = []
+      destinations.each do |destination|
+        destination = destination.reverse.chop.reverse if destination[0] == 34
+        if destination.match /^(sip|SIP|tel)(\:|\/)\w{1,}$/
+          destinations_array << destination.gsub('SIP/', 'sip:')
+        else
+          destinations_array << destination.gsub('SIP/', 'sip:')
         end
       end
       destinations_array
     rescue => e
-      show 'parse_destinations method error:', e
+      show "parse_destinations method error: #{e.inspect}"
     end
 
     ##
@@ -804,24 +825,13 @@ class TropoAGItate
     end
 
     ##
-    # ====> SHOULD BE USED TO EXTRACT AND USE THESE OPTIONS LATER <====
-    #
-    # Removes the options details on the dial string
-    #
-    # @param[String] the destination to strip any extraneous items from
-    #
-    # @return [Array] the destination
-    def remove_options(destination)
-      destination.split('"')[0]
-    end
-
-    ##
     # Preps @user_vars to be set as headers
     #
     # @return [Hash] the formatted headers
-    def set_headers
+    def set_headers(vars)
+      show "Headers to map: #{vars.inspect}"
       headers = {}
-      @user_vars.each do |k, v|
+      vars.each do |k, v|
         headers['x-tropo-' + k] = v
       end
       headers
@@ -840,13 +850,13 @@ class TropoAGItate
     @current_app      = current_app
 
     @tropo_agi_config = tropo_agi_config
-    show 'With Configuration',  @tropo_agi_config.inspect
+    show "With Configuration  #{@tropo_agi_config.inspect}"
     @commands = Commands.new(@current_call, @tropo_agi_config)
   rescue => e
-      show 'Could not find your configuration file.', e
+      show "Could not find your configuration file. #{e.inspect}"
       # Could not find any config, so failing over to the default location
       failover('sip:9991443146@sip.tropo.com')
-      show 'Session sent to default backup location', 'Now aborting the script'
+      show 'Session sent to default backup location, Now aborting the script'
       abort
   end
 
@@ -859,12 +869,12 @@ class TropoAGItate
       while @current_call.isActive
         begin
           command = @agi_client.gets
-          show 'Raw string: ', command
+          show "Raw string: #{command}"
           result = execute_command(command)
           response = @agi_client.write(result)
         rescue => e
           @current_call.log '====> Broken pipe to the AGI server, Adhearsion tends to drop the socket after sending a hangup. <===='
-          show 'Error is:', e
+          show "Error is: #{e}"
           @current_call.hangup
         end
       end
@@ -973,7 +983,7 @@ MSG
     when 'record'
       @commands.record(options)
     else
-      show "Invalid or unknown command", data
+      show "Invalid or unknown command #{data}"
       return "510 result=Invalid or unknown Command\n"
     end
   end
@@ -993,7 +1003,7 @@ MSG
     command = { :action => part1.downcase }
     command.merge!({ :command => strip_quotes(part2.downcase) }) unless  part2.nil?
     command.merge!({ :args => parse_args(part3) }) unless part3.nil? || part3.empty?
-    show 'command', command
+    show "command #{command.inspect}"
     command
   end
 
@@ -1032,7 +1042,7 @@ MSG
         begin
           @current_call.transfer location
         rescue => e
-          show 'Unable to transfer to your next_sip_uri location', e
+          show "Unable to transfer to your next_sip_uri location #{e}"
         end
       else
         error_message = 'We are unable to connect to the fail over sip U R I.  Please try your call again later.'
@@ -1054,7 +1064,7 @@ MSG
     # Try from the www directory on the Tropo file system
     result = fetch_config_file "/#{account_data[1]}/www/tropo_agi_config/tropo_agi_config.yml"
     return YAML.load(result.body) if result.code == '200'
-    show 'Can not find config file.', result.body
+    show "Can not find config file. #{result.body}"
 
     # No config file found
     raise RuntimeError, "Configuration file not found"
