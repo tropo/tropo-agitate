@@ -45,6 +45,7 @@ class CurrentCall
   def answer; @state ='ANSWERED'; end
   def ask(text, options); AskResponse.new; end
   def callerID; '4155551212'; end
+  def calledID; '4045551234'; end
   def callerName; 'Jason Goecke'; end
   def call(text, options); 'call response: ' + text.inspect; p options; end
   def conference(text); 'conference reponse: ' + text.inspect; end

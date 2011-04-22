@@ -49,7 +49,7 @@ agi_callingpres: 0
 agi_callingani2: 0
 agi_callington: 0
 agi_callingtns: 0
-agi_dnid: 1000
+agi_dnid: #{@current_call.calledID}
 agi_rdnis: unknown
 agi_context: #{agi_uri.path[1..-1]}
 agi_extension: 1
