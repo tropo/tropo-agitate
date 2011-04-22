@@ -688,7 +688,7 @@ class TropoAGItate
     private
     
     ##
-    # Automatically answers the call/session if not explicityly done
+    # Automatically answers the call/session if not explicitly done
     def check_state
       case @current_call.state
       when 'DISCONNECTED'
