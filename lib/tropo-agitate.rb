@@ -41,9 +41,7 @@ class TropoAGItate
     #
     # @return [String] the string with the quotes removed
     def strip_quotes(text)
-      text.chop! if text[text.length - 1] == 34
-      text.reverse!.chop!.reverse! if text[0] == 34
-      text
+      text.sub(/^"/, '').sub(/"$/, '')
     end
 
     ##
