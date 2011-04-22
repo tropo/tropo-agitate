@@ -604,7 +604,7 @@ class TropoAGItate
     # @param [Hash] options used to build the say
     #
     # @return [String] the response in AGI raw form
-    def user_vars(options={})
+    def channel_variable(options={})
       case options[:action]
       when 'set'
         key_value = options[:args][0].split(' ', 2)
@@ -970,7 +970,7 @@ MSG
       @commands.send(options[:action].to_sym)
     when 'set', 'get'
       if options[:command].downcase == 'variable'
-        @commands.user_vars(options)
+        @commands.channel_variable(options)
       elsif options[:command].downcase == 'callerid' || options[:command].downcase == 'calleridname'
         @commands.callerid(options)
       end
