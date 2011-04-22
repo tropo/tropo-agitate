@@ -41,9 +41,7 @@ class TropoAGItate
     #
     # @return [String] the string with the quotes removed
     def strip_quotes(text)
-      text.chop! if text[text.length - 1] == 34
-      text.reverse!.chop!.reverse! if text[0] == 34
-      text
+      text.sub(/^"/, '').sub(/"$/, '')
     end
 
     ##
@@ -87,9 +85,9 @@ class TropoAGItate
       # Used to store user request values for SET/GET VARIABLE commands of Asterisk
       # May also be passed in as a JSON string from the Tropo Session API
       if $user_vars
-        @user_vars = JSON.parse $user_vars
+        @chanvars = TropoAGItate::MagicChannelVariables.new JSON.parse $user_vars
       else
-        @user_vars = {}
+        @chanvars = TropoAGItate::MagicChannelVariables.new
       end
       @asterisk_sound_files = asterisk_sound_files if @tropo_agi_config['asterisk']['sounds']['enabled']
     end
@@ -147,13 +145,13 @@ class TropoAGItate
     end
 
     ##
-    # Sets the callerid and calleridname params in Tropo
+    # Sets the callerid params in Tropo
     #
     # @param [Hash] the options to be used when setting callerid/calleridname
     #
     # @return [String] the response in AGI raw form
     def callerid(options={})
-      @user_vars[options[:command].downcase] = options[:args][0]
+      @chanvars['CALLERID'] = options[:args][0]
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -176,7 +174,7 @@ class TropoAGItate
       # Copy the channel variables hash.  We need to remove certain variables that
       # cause problems if converted to JSON (specifically: anything with
       # parenthesis in the name)
-      vars = @user_vars.clone
+      vars = @chanvars.clone
 
       # Convert Asterisk app_dial inputs to Tropo syntax
       options[:timeout]  = args.shift.to_i if args.count
@@ -193,7 +191,7 @@ class TropoAGItate
       result = @current_call.transfer destinations, options
 
       # Map the Tropo result to the Asterisk DIALSTATUS channel variable
-      @user_vars['DIALSTATUS'] = case result.name.downcase
+      @chanvars['DIALSTATUS'] = case result.name.downcase
       when 'transfer'    then 'ANSWER'
       when 'success'     then 'ANSWER'
       when 'timeout'     then 'NOANSWER'
@@ -391,7 +389,7 @@ class TropoAGItate
       end
 
       # Set the variable the user has specified for the value to insert into
-      @user_vars[options[:args][0].downcase] = response.value
+      @chanvars[options[:args][0]] = response.value
       @agi_response + "0\n"
     end
     
@@ -606,15 +604,15 @@ class TropoAGItate
     # @param [Hash] options used to build the say
     #
     # @return [String] the response in AGI raw form
-    def user_vars(options={})
+    def channel_variable(options={})
       case options[:action]
       when 'set'
-        key_value = options[:args][0].split(' ')
-        @user_vars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
+        key_value = options[:args][0].split(' ', 2)
+        @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
         @agi_response + "0\n"
       when 'get'
-        if @user_vars[strip_quotes(options[:args][0])]
-          @agi_response + '1 (' + @user_vars[strip_quotes(options[:args][0])] + ")\n"
+        if @chanvars[strip_quotes(options[:args][0])]
+          @agi_response + '1 (' + @chanvars[strip_quotes(options[:args][0])] + ")\n"
         else
           # Variable has not been set
           @agi_response + "0\n"
@@ -825,7 +823,7 @@ class TropoAGItate
     end
 
     ##
-    # Preps @user_vars to be set as headers
+    # Preps @chanvars to be set as headers
     #
     # @return [Hash] the formatted headers
     def set_headers(vars)
@@ -972,7 +970,7 @@ MSG
       @commands.send(options[:action].to_sym)
     when 'set', 'get'
       if options[:command].downcase == 'variable'
-        @commands.user_vars(options)
+        @commands.channel_variable(options)
       elsif options[:command].downcase == 'callerid' || options[:command].downcase == 'calleridname'
         @commands.callerid(options)
       end
@@ -1089,6 +1087,57 @@ MSG
     Net::HTTP.start(url.host, url.port) {|http|
       http.get resource
     }
+  end
+
+  ##
+  # A special class to mimic some of Asterisk's behavior toward certain
+  # channel variables.
+  class MagicChannelVariables
+    include Enumerable
+
+    def initialize(inputs = {})
+      @variables = {:callerid => {}}
+      inputs.each_pair do |k,v|
+        set(k,v)
+      end
+    end
+
+    def set(k, v)
+      case k
+      when "CALLERIDNAME", "CALLERID(name)"
+        @variables[:callerid][:name] = v
+      when "CALLERIDNUM", "CALLERID(num)"
+        @variables[:callerid][:num] = v
+      when "CALLERID", "CALLERID(all)"
+        # Parse out the callerID details
+        # MUST be in the form of "Name"<number>
+        # See http://www.voip-info.org/wiki/view/set+callerid
+        name, number = v.scan(/(?:"([^"]*)"\s*){0,1}<([^>]*)>/).first
+        @variables[:callerid][:name] = name   if !name.nil?
+        @variables[:callerid][:num]  = number if !number.nil?
+      else
+        @variables[k] = v
+      end
+    end
+    alias :[]= :set
+
+    def get(k)
+      case k
+      when "CALLERIDNAME", "CALLERID(name)"
+        @variables[:callerid][:name]
+      when "CALLERIDNUM", "CALLERID(num)"
+        @variables[:callerid][:num]
+      when "CALLERID", "CALLERID(all)"
+        "\"#{@variables[:callerid][:name]}\" <#{@variables[:callerid][:num]}>"
+      else
+        @variables[k] || nil
+      end
+    end
+    alias :[] :get
+
+    def method_missing(m, *args)
+      @variables.send(m, *args)
+    end
   end
 end#end class TropoAGItate
 
