@@ -607,7 +607,7 @@ class TropoAGItate
     def user_vars(options={})
       case options[:action]
       when 'set'
-        key_value = options[:args][0].split(' ')
+        key_value = options[:args][0].split(' ', 2)
         @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
         @agi_response + "0\n"
       when 'get'
