@@ -34,6 +34,7 @@ class CurrentCall
   attr_reader :value
   attr_reader :isActive
   attr_reader :state
+  attr_reader :transferInfo
 
   def initialize
     @value = '94070'
@@ -65,8 +66,20 @@ class CurrentCall
   def startCallRecording(uri, options); nil ; end
   def stopCallRecording; nil; end
   def state; 'RINGING'; end
-  def transfer(foo, bar); true; end
   def record(uri, options); true; end
+
+  def transfer(destinations, options)
+    @transferInfo = {:destinations => destinations, :options => options}
+    return TropoResult.new
+  end
+end
+
+class TropoResult
+  attr_accessor :name
+
+  def initialize
+    @name = 'transfer'
+  end
 end
 
 # Here for testing outside of Tropo, so we mock the $currentApp object

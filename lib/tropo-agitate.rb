@@ -1112,7 +1112,7 @@ MSG
         # Parse out the callerID details
         # MUST be in the form of "Name"<number>
         # See http://www.voip-info.org/wiki/view/set+callerid
-        name, number = v.scan(/"([^"]*)"\s*<([^>]*)>/).first
+        name, number = v.scan(/(?:"([^"]*)"\s*){0,1}<([^>]*)>/).first
         @variables[:callerid][:name] = name   if !name.nil?
         @variables[:callerid][:num]  = number if !number.nil?
       else
@@ -1128,12 +1128,16 @@ MSG
       when "CALLERIDNUM", "CALLERID(num)"
         @variables[:callerid][:num]
       when "CALLERID", "CALLERID(all)"
-        "\"#{@variables[:callerid][:name]}\"<#{@variables[:callerid][:num]}>"
+        "\"#{@variables[:callerid][:name]}\" <#{@variables[:callerid][:num]}>"
       else
         @variables[k] || nil
       end
     end
     alias :[] :get
+
+    def method_missing(m, *args)
+      @variables.send(m, *args)
+    end
   end
 end#end class TropoAGItate
 

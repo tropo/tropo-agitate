@@ -54,17 +54,22 @@ describe "TropoAGItate::TropoCommands" do
   end
 
   it "should store and return a user variable" do
-    result = @tropo_commands.user_vars({ :action => 'set', :args => ["\"foobar\" \"green\""]})
+    result = @tropo_commands.channel_variable({ :action => 'set', :args => ["\"foobar\" \"green\""]})
     result.should == "200 result=0\n"
-    result = @tropo_commands.user_vars({ :action => 'get', :args => ["\"foobar\""]})
+    result = @tropo_commands.channel_variable({ :action => 'get', :args => ["\"foobar\""]})
     result.should == "200 result=1 (green)\n"
-    result = @tropo_commands.user_vars({ :action => 'get', :args => ["\"novar\""]})
+    result = @tropo_commands.channel_variable({ :action => 'get', :args => ["\"novar\""]})
     result.should == "200 result=0\n"
   end
 
   it "should return a valid string when a dial is requested" do
+    options = { :args => ["\"tel:+14153675082\",\"\",\"\""] }
+    @tropo_commands.dial(options).should == "200 result=0\n"
+  end
+
+  it "should return a valid string when a dial is requested" do
     options = { :args => ["\"tel:+14153675082\"|\"\"|\"\""] }
-    @tropo_commands.dial.should == "200 result=0\n"
+    @tropo_commands.dial(options).should == "200 result=0\n"
   end
 
   it "should return a valid string when a file is requested" do

@@ -121,24 +121,23 @@ MSG
     command.should == { :command => "mixmonitor", :action => "exec", :args => { 'method' => 'POST', 'uri' => 'http://localhost' } }
   end
 
+  it "should set DIALSTATUS after placing a call" do
+    dest = "sip:+14045551234"
+    @tropo_agitate.execute_command("EXEC Dial \"#{dest}\",\"20\",\"\"")
+    command = @tropo_agitate.execute_command('GET VARIABLE DIALSTATUS')
+    command.should == "200 result=1 (ANSWER)\n"
+    @current_call.transferInfo[:destinations].should == [dest]
+  end
+
+  it "should set the dial timeout correctly" do
+    timeout = 45
+    @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"#{timeout}\",\"\"")
+    @current_call.transferInfo[:options][:timeout].should == timeout
+  end
+
   it "should execute the command" do
     command = @tropo_agitate.execute_command('EXEC MeetMe "1234","d",""')
     command.should == "200 result=0\n"
-
-    command = @tropo_agitate.execute_command('SET CALLERID "9095551234"')
-    command.should == "200 result=0\n"
-
-    command = @tropo_agitate.execute_command('SET VARIABLE CALLERIDNAME "John Denver"')
-    command.should == "200 result=0\n"
-
-    command = @tropo_agitate.execute_command('GET VARIABLE "CALLERIDNAME"')
-    command.should == "200 result=1 (John Denver)\n"
-
-    command = @tropo_agitate.execute_command('SET VARIABLE FOOBAR "green"')
-    command.should == "200 result=0\n"
-
-    command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
-    command.should == "200 result=1 (green)\n"
 
     command = @tropo_agitate.execute_command("EXEC monitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
     command.should == "200 result=0\n"
@@ -148,6 +147,31 @@ MSG
 
     command = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
     command.should == "200 result=0\n"
+  end
+
+  it "should handle magic channel variables properly" do
+    number = "9095551234"
+    name = "John Denver"
+
+    command = @tropo_agitate.execute_command("SET CALLERID \"<#{number}>\"")
+    command.should == "200 result=0\n"
+    command = @tropo_agitate.execute_command('GET VARIABLE CALLERID(num)')
+    command.should == "200 result=1 (#{number})\n"
+
+    command = @tropo_agitate.execute_command("SET VARIABLE CALLERIDNAME \"#{name}\"")
+    command.should == "200 result=0\n"
+    command = @tropo_agitate.execute_command('GET VARIABLE "CALLERIDNAME"')
+    command.should == "200 result=1 (John Denver)\n"
+    command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(name)"')
+    command.should == "200 result=1 (John Denver)\n"
+
+    command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(all)"')
+    command.should == "200 result=1 (\"#{name}\" <#{number}>)\n"
+
+    command = @tropo_agitate.execute_command('SET VARIABLE FOOBAR "green"')
+    command.should == "200 result=0\n"
+    command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
+    command.should == "200 result=1 (green)\n"
   end
   
   it "should execute the command as Asterisk-Java would pass" do
