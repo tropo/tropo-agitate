@@ -12,3 +12,4 @@ and clean up parsing of dial string
 * Allow detecting the Tropo dialed number for incoming calls (agi_dnid)
 * Fix fatal missing error on SIP failover failure
 * Update unit tests for new functionality; fix broken unit tests
+* Rspec tests now require JRuby v1.5.x or better

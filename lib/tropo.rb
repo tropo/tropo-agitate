@@ -110,8 +110,6 @@ class CurrentApp
 end
 
 class IncomingCall
-  include Java
-
   def getHeaderMap
     map = java.util.HashMap.new
     map.put "kermit", "green"
