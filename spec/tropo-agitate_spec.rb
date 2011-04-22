@@ -128,7 +128,7 @@ MSG
     command = @tropo_agitate.execute_command('SET CALLERID "9095551234"')
     command.should == "200 result=0\n"
 
-    command = @tropo_agitate.execute_command('SET CALLERIDNAME "John Denver"')
+    command = @tropo_agitate.execute_command('SET VARIABLE CALLERIDNAME "John Denver"')
     command.should == "200 result=0\n"
 
     command = @tropo_agitate.execute_command('GET VARIABLE "CALLERIDNAME"')
