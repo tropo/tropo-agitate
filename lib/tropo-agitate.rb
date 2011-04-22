@@ -1095,8 +1095,9 @@ MSG
   class MagicChannelVariables
     include Enumerable
 
-    def initialize(variables = {})
-      variables.each_pair do |k,v|
+    def initialize(inputs = {})
+      @variables = {:callerid => {}}
+      inputs.each_pair do |k,v|
         set(k,v)
       end
     end
