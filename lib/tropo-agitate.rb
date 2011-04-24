@@ -1135,6 +1135,29 @@ MSG
     end
     alias :[] :get
 
+    def has_key?(k)
+      case k
+      when "CALLERIDNAME", "CALLERID(name)"
+        !@variables[:callerid][:name].nil?
+      when "CALLERIDNUM", "CALLERID(num)"
+        !@variables[:callerid][:num].nil?
+      when "CALLERID", "CALLERID(all)"
+        # Return true if either component variable is set.
+        !(@variables[:callerid][:name].nil? && @variables[:callerid][:num].nil?)
+      else
+        @variables.has_key?(k)
+      end
+    end
+
+    def each(&block)
+      @variables.each do |k,v|
+        # Convert key names that would result in invalid JSON
+        k = k.to_s.gsub(/[\(\)]/, '')
+        yield k,v
+      end
+    end
+    alias :each_pair :each
+
     def method_missing(m, *args)
       @variables.send(m, *args)
     end
