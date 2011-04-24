@@ -171,11 +171,6 @@ class TropoAGItate
       destinations = parse_destinations(args.shift.split('&'))
       options = {}
 
-      # Copy the channel variables hash.  We need to remove certain variables that
-      # cause problems if converted to JSON (specifically: anything with
-      # parenthesis in the name)
-      vars = @chanvars.clone
-
       # Convert Asterisk app_dial inputs to Tropo syntax
       options[:timeout]  = args.shift.to_i if args.count
 
@@ -183,9 +178,8 @@ class TropoAGItate
       # like m for MOH, A() to play announcement to called party,
       # D() for post-dial DTMF, L() for call duration limits
       #astflags = args.shift if args.count
-
-      options[:callerID] = vars.delete('CALLERID(num)') if vars.has_key?('CALLERID(num)')
-      options[:headers]  = set_headers(vars)
+      options[:callerID] = @chanvars['CALLERID(num)'] if @chanvars.has_key?('CALLERID(num)')
+      options[:headers]  = set_headers(@chanvars)
 
       show "Destination: #{destinations.inspect}, Options: #{options.inspect}"
       result = @current_call.transfer destinations, options
