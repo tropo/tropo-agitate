@@ -830,7 +830,7 @@ class TropoAGItate
       show "Headers to map: #{vars.inspect}"
       headers = {}
       vars.each do |k, v|
-        headers['x-tropo-' + k] = v
+        headers['x-tropo-' + k.to_s] = v
       end
       headers
     end
