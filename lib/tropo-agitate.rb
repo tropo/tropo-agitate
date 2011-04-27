@@ -694,7 +694,7 @@ class TropoAGItate
     end
     
     ##
-    # Converts the choices passed in a STREAM FILE into the requisite comma-delimitted format for Tropo
+    # Converts the choices passed in a STREAM FILE into the requisite comma-delimited format for Tropo
     #
     # @param [required, String] escape_digits to convert
     def create_choices(escape_digits)
