@@ -105,6 +105,9 @@ MSG
     command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
     command.should == { :command => "dial", :action => "exec", :args => ["sip:jsgoecke@yahoo.com", "", ""] }
 
+    command = @tropo_agitate.parse_command('EXEC AMD')
+    command.should == { :command => "amd", :action => "exec" }
+
     command = @tropo_agitate.parse_command('EXEC MeetMe "1234","d",""')
     command.should == { :command => "meetme", :action => "exec", :args => ["1234", "d", ""] }
 
@@ -137,6 +140,28 @@ MSG
     @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"#{timeout}\",\"\"")
     @current_call.transferInfo[:options][:timeout].should == timeout
   end
+
+  it "should properly detect an answering machine" do
+    flexmock(@current_call).should_receive(:record).and_return do |*args|
+      # Simulate a long recording, indicating that silence is not received for more than 4 seconds
+      sleep 5
+    end
+
+    @tropo_agitate.execute_command("EXEC AMD")
+    amdstatus = @tropo_agitate.execute_command('GET VARIABLE AMDSTATUS')
+    amdcause  = @tropo_agitate.execute_command('GET VARIABLE AMDCAUSE')
+    amdstatus.should == "200 result=1 (MACHINE)\n"
+    amdcause.should  == "200 result=1 (TOOLONG-5)\n"
+  end
+
+  it "should properly detect a human" do
+    @tropo_agitate.execute_command("EXEC AMD")
+    amdstatus = @tropo_agitate.execute_command('GET VARIABLE AMDSTATUS')
+    amdcause  = @tropo_agitate.execute_command('GET VARIABLE AMDCAUSE')
+    amdstatus.should == "200 result=1 (HUMAN)\n"
+    amdcause.should  == "200 result=1 (HUMAN-1-1)\n"
+  end
+
 
   it "should set the callerdID correctly" do
     callerid = "4045551234"

@@ -199,6 +199,45 @@ class TropoAGItate
     end
 
     ##
+    # Implements Answering Machine Detection
+    # AGI: http://www.voip-info.org/wiki/index.php?page=Asterisk+cmd+AMD
+    # Tropo: http://blog.tropo.com/2010/12/17/human-vs-answering-machine-detection/
+    #
+    # @param [Hash] the options used to place the dial
+    #
+    # @return [String] the response in AGI raw form
+    def amd(options={})
+      check_state
+
+      # TODO: It is not currently possible to do the in-depth analysis on Tropo
+      # (word-count, number of words, silence threshold) that Asterisk supports
+      # with app_amd.  Thus we have to ignore any passed-in args.
+      starttime = Time.now
+      @current_call.record ".", {
+          :beep => false,
+          :timeout => 10,
+          :silenceTimeout => 1,
+          :maxTime => 10
+          }
+
+      endtime = Time.now
+      difference = (endtime - starttime).to_i
+
+      if difference < 3
+          @chanvars['AMDSTATUS'] = 'HUMAN'
+          # Since :silenceTimeout is 1 above, fudge the silenceDuration
+          # and afterGreetingSilence values
+          @chanvars['AMDCAUSE'] = "HUMAN-1-1"
+      else
+          @chanvars['AMDSTATUS'] = 'MACHINE'
+          @chanvars['AMDCAUSE']  = "TOOLONG-#{difference.to_s}"
+      end
+      @agi_response + "0\n"
+    rescue => e
+      log_error(this_method, e)
+    end
+
+    ##
     # Play the given file
     # AGI: http://www.voip-info.org/wiki/view/stream+file
     #
