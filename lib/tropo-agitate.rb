@@ -235,10 +235,10 @@ class TropoAGItate
           response = @current_call.ask prompt, { :choices    => create_choices(escape_digits), 
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
-          result = @agi_response + response.value[0].to_s + " endpos=0\n"
+          digit = response.value.nil? ? 0 : response.value[0]
+          result = @agi_response + digit.to_s + " endpos=0\n"
         end
       end
-      show "File response: #{response.inspect}"
       result
     rescue => e
       log_error(this_method, e)
