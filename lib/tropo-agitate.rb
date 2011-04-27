@@ -658,9 +658,9 @@ class TropoAGItate
         timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
         timeout = 1000 if timeout == -1
         timeout = timeout / 1000
-        response = @current_call.ask('', { 'timeout'    => timeout,
-                                           'choices'    => '[1 DIGIT], *, #',
-                                           'choiceMode' => 'keypad' })
+        response = @current_call.ask('', { :timeout    => timeout,
+                                           :choices    => '[1 DIGIT], *, #',
+                                           :choiceMode => 'keypad' })
       else
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
