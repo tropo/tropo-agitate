@@ -824,7 +824,7 @@ class TropoAGItate
       show "Headers to map: #{vars.inspect}"
       headers = {}
       vars.each do |k, v|
-        headers['x-tropo-' + k.to_s] = v
+        headers['x-tropo-' + k.to_s] = v.to_json
       end
       headers
     end
@@ -1143,7 +1143,7 @@ MSG
       end
     end
 
-    def each(&block)
+    def each
       @variables.each do |k,v|
         # Convert key names that would result in invalid JSON
         k = k.to_s.gsub(/[\(\)]/, '')
