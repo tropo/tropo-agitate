@@ -8,7 +8,7 @@
 if $currentCall.nil? && $destination.nil?
   Object.class_eval do
     def log(val)
-      val
+      #STDERR.puts val
     end
     def show(val)
       log("====> #{val} <====")

@@ -203,9 +203,14 @@ MSG
     command.should == "200 result=57 endpos=0\n"
   end
   
-  it "should return the account data from a directory lookup" do
-    @tropo_agitate.fetch_account_data[1].should == '49767'
-    @tropo_agitate.fetch_account_data[1].should == '49768'
+  it "should return the account data from a directory lookup on Windows" do
+    TropoAGItate.new(@current_call, CurrentApp.new(49767)).fetch_account_data[1].should == '49767'
+  end
+
+  it "should return the account data from a directory lookup on Linux" do
+    FakeWeb.register_uri(:get, "http://hosting.tropo.com/49768/www/tropo_agi_config/tropo_agi_config.yml",
+                         :body => File.open('tropo_agi_config/tropo_agi_config.yml').read)
+    TropoAGItate.new(@current_call, CurrentApp.new(49768)).fetch_account_data[1].should == '49768'
   end
   
   it "should execute a read" do
