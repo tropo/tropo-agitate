@@ -171,11 +171,6 @@ class TropoAGItate
       destinations = parse_destinations(args.shift.split('&'))
       options = {}
 
-      # Copy the channel variables hash.  We need to remove certain variables that
-      # cause problems if converted to JSON (specifically: anything with
-      # parenthesis in the name)
-      vars = @chanvars.clone
-
       # Convert Asterisk app_dial inputs to Tropo syntax
       options[:timeout]  = args.shift.to_i if args.count
 
@@ -183,9 +178,8 @@ class TropoAGItate
       # like m for MOH, A() to play announcement to called party,
       # D() for post-dial DTMF, L() for call duration limits
       #astflags = args.shift if args.count
-
-      options[:callerID] = vars.delete('CALLERID(num)') if vars.has_key?('CALLERID(num)')
-      options[:headers]  = set_headers(vars)
+      options[:callerID] = @chanvars['CALLERID(num)'] if @chanvars.has_key?('CALLERID(num)')
+      options[:headers]  = set_headers(@chanvars)
 
       show "Destination: #{destinations.inspect}, Options: #{options.inspect}"
       result = @current_call.transfer destinations, options
@@ -241,10 +235,10 @@ class TropoAGItate
           response = @current_call.ask prompt, { :choices    => create_choices(escape_digits), 
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
-          result = @agi_response + response.value[0].to_s + " endpos=0\n"
+          digit = response.value.nil? ? 0 : response.value[0]
+          result = @agi_response + digit.to_s + " endpos=0\n"
         end
       end
-      show "File response: #{response.inspect}"
       result
     rescue => e
       log_error(this_method, e)
@@ -664,9 +658,9 @@ class TropoAGItate
         timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
         timeout = 1000 if timeout == -1
         timeout = timeout / 1000
-        response = @current_call.ask('', { 'timeout'    => timeout,
-                                           'choices'    => '[1 DIGIT], *, #',
-                                           'choiceMode' => 'keypad' })
+        response = @current_call.ask('', { :timeout    => timeout,
+                                           :choices    => '[1 DIGIT], *, #',
+                                           :choiceMode => 'keypad' })
       else
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
@@ -700,7 +694,7 @@ class TropoAGItate
     end
     
     ##
-    # Converts the choices passed in a STREAM FILE into the requisite comma-delimitted format for Tropo
+    # Converts the choices passed in a STREAM FILE into the requisite comma-delimited format for Tropo
     #
     # @param [required, String] escape_digits to convert
     def create_choices(escape_digits)
@@ -776,7 +770,11 @@ class TropoAGItate
       @current_call.log '====> Tropo AGI ACTION ERROR - Start <===='
       show "Error: Unable to execute the #{action} request. call_active? #{@current_call.isActive.inspect}"
       show "Error output: #{error.inspect}"
-      show "Trace: #{error.backtrace.join("\n")}"
+      show "******************************** TRACE ********************************"
+      error.backtrace.each do |line|
+        show line
+      end
+      show "******************************** END TRACE ********************************"
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
 
       # Return an error based on the error encountered
@@ -830,7 +828,7 @@ class TropoAGItate
       show "Headers to map: #{vars.inspect}"
       headers = {}
       vars.each do |k, v|
-        headers['x-tropo-' + k] = v
+        headers['x-tropo-' + k.to_s] = v.to_json
       end
       headers
     end
@@ -1134,6 +1132,29 @@ MSG
       end
     end
     alias :[] :get
+
+    def has_key?(k)
+      case k
+      when "CALLERIDNAME", "CALLERID(name)"
+        !@variables[:callerid][:name].nil?
+      when "CALLERIDNUM", "CALLERID(num)"
+        !@variables[:callerid][:num].nil?
+      when "CALLERID", "CALLERID(all)"
+        # Return true if either component variable is set.
+        !(@variables[:callerid][:name].nil? && @variables[:callerid][:num].nil?)
+      else
+        @variables.has_key?(k)
+      end
+    end
+
+    def each
+      @variables.each do |k,v|
+        # Convert key names that would result in invalid JSON
+        k = k.to_s.gsub(/[\(\)]/, '')
+        yield k,v
+      end
+    end
+    alias :each_pair :each
 
     def method_missing(m, *args)
       @variables.send(m, *args)

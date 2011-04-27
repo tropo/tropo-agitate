@@ -135,6 +135,13 @@ MSG
     @current_call.transferInfo[:options][:timeout].should == timeout
   end
 
+  it "should set the callerdID correctly" do
+    callerid = "4045551234"
+    @tropo_agitate.execute_command("SET VARIABLE CALLERID(num) #{callerid}")
+    @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"30\",\"\"")
+    @current_call.transferInfo[:options][:callerID].should == callerid
+  end
+
   it "should execute the command" do
     command = @tropo_agitate.execute_command('EXEC MeetMe "1234","d",""')
     command.should == "200 result=0\n"
