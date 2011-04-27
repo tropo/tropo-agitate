@@ -770,7 +770,11 @@ class TropoAGItate
       @current_call.log '====> Tropo AGI ACTION ERROR - Start <===='
       show "Error: Unable to execute the #{action} request. call_active? #{@current_call.isActive.inspect}"
       show "Error output: #{error.inspect}"
-      show "Trace: #{error.backtrace.join("\n")}"
+      show "******************************** TRACE ********************************"
+      error.backtrace.each do |line|
+        show line
+      end
+      show "******************************** END TRACE ********************************"
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
 
       # Return an error based on the error encountered
