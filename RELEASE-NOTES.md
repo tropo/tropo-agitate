@@ -1,6 +1,18 @@
 Tropo AGItate - Release Notes
 =============================
 
+v0.1.8
+------
+
+* Add unit test for outbound callerID functionality	
+* Provide has_key? method to ensure proper handling	
+* Make sure header keys are strings	
+* No need to work with a copy of the channel vars now	
+* Make sure to encode as JSON in case we hit a nested channel variable	
+* Avoid exception if no input is received	
+* Work around Tropo Ruby shim bug with _parseTime
+* Better backtrace logging
+
 v0.1.7
 ------
 
