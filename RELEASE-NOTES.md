@@ -1,6 +1,14 @@
 Tropo AGItate - Release Notes
 =============================
 
+v0.1.9
+------
+
+* Make unit tests more idempotent	
+* Make unit tests less magical	
+* Add support for Flexmock	
+* Rudimentary answering machine detection	
+
 v0.1.8
 ------
 
