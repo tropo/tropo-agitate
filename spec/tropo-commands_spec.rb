@@ -13,6 +13,9 @@ describe "TropoAGItate::TropoCommands" do
     # Register the hosted JSON file
     FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json",
                            :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
+  end
+
+  before(:each) do
     @tropo_agitate = TropoAGItate.new(@current_call, CurrentApp.new)
     @tropo_commands = TropoAGItate::Commands.new(CurrentCall.new, @tropo_agitate.tropo_agi_config)
   end

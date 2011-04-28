@@ -14,6 +14,9 @@ describe "TropoAGItate" do
     FakeWeb.register_uri(:get, "http://hosting.tropo.com/49767/www/audio/asterisk_sounds/asterisk_sounds.json",
                          :body => '{"tt-monkeys":"tt-monkeys.gsm"}')
 
+  end
+
+  before(:each) do
     @current_call  = CurrentCall.new
     $incomingCall  = IncomingCall.new
     @tropo_agitate = TropoAGItate.new(@current_call, CurrentApp.new)
@@ -102,6 +105,9 @@ MSG
     command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
     command.should == { :command => "dial", :action => "exec", :args => ["sip:jsgoecke@yahoo.com", "", ""] }
 
+    command = @tropo_agitate.parse_command('EXEC AMD')
+    command.should == { :command => "amd", :action => "exec" }
+
     command = @tropo_agitate.parse_command('EXEC MeetMe "1234","d",""')
     command.should == { :command => "meetme", :action => "exec", :args => ["1234", "d", ""] }
 
@@ -134,6 +140,28 @@ MSG
     @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"#{timeout}\",\"\"")
     @current_call.transferInfo[:options][:timeout].should == timeout
   end
+
+  it "should properly detect an answering machine" do
+    flexmock(@current_call).should_receive(:record).and_return do |*args|
+      # Simulate a long recording, indicating that silence is not received for more than 4 seconds
+      sleep 5
+    end
+
+    @tropo_agitate.execute_command("EXEC AMD")
+    amdstatus = @tropo_agitate.execute_command('GET VARIABLE AMDSTATUS')
+    amdcause  = @tropo_agitate.execute_command('GET VARIABLE AMDCAUSE')
+    amdstatus.should == "200 result=1 (MACHINE)\n"
+    amdcause.should  == "200 result=1 (TOOLONG-5)\n"
+  end
+
+  it "should properly detect a human" do
+    @tropo_agitate.execute_command("EXEC AMD")
+    amdstatus = @tropo_agitate.execute_command('GET VARIABLE AMDSTATUS')
+    amdcause  = @tropo_agitate.execute_command('GET VARIABLE AMDCAUSE')
+    amdstatus.should == "200 result=1 (HUMAN)\n"
+    amdcause.should  == "200 result=1 (HUMAN-1-1)\n"
+  end
+
 
   it "should set the callerdID correctly" do
     callerid = "4045551234"
@@ -200,9 +228,14 @@ MSG
     command.should == "200 result=57 endpos=0\n"
   end
   
-  it "should return the account data from a directory lookup" do
-    @tropo_agitate.fetch_account_data[1].should == '49767'
-    @tropo_agitate.fetch_account_data[1].should == '49768'
+  it "should return the account data from a directory lookup on Windows" do
+    TropoAGItate.new(@current_call, CurrentApp.new(49767)).fetch_account_data[1].should == '49767'
+  end
+
+  it "should return the account data from a directory lookup on Linux" do
+    FakeWeb.register_uri(:get, "http://hosting.tropo.com/49768/www/tropo_agi_config/tropo_agi_config.yml",
+                         :body => File.open('tropo_agi_config/tropo_agi_config.yml').read)
+    TropoAGItate.new(@current_call, CurrentApp.new(49768)).fetch_account_data[1].should == '49768'
   end
   
   it "should execute a read" do
