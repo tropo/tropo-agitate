@@ -33,6 +33,8 @@ end
 #########
 # @author Jason Goecke
 class TropoAGItate
+  attr_accessor :agi_uri, :agi_exten, :commands
+
   module Helpers
     ##
     # Strips the quotes from a string
@@ -66,6 +68,8 @@ class TropoAGItate
 
   include Helpers
   class Commands
+    attr_accessor :chanvars
+
     include Helpers
 
     ##
@@ -644,8 +648,9 @@ class TropoAGItate
         @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
         @agi_response + "0\n"
       when 'get'
-        if @chanvars[strip_quotes(options[:args][0])]
-          @agi_response + '1 (' + @chanvars[strip_quotes(options[:args][0])] + ")\n"
+        varname = strip_quotes(options[:args][0].to_s)
+        if @chanvars[varname]
+          @agi_response + '1 (' + @chanvars[varname] + ")\n"
         else
           # Variable has not been set
           @agi_response + "0\n"
@@ -888,6 +893,10 @@ class TropoAGItate
     @tropo_agi_config = tropo_agi_config
     show "With Configuration  #{@tropo_agi_config.inspect}"
     @commands = Commands.new(@current_call, @tropo_agi_config)
+
+    @agi_uri = URI.parse @tropo_agi_config['agi']['uri']
+    @agi_uri.port = 4573 if @agi_uri.port.nil?
+    @agi_exten = 's'
   rescue => e
       show "Could not find your configuration file. #{e.inspect}"
       # Could not find any config, so failing over to the default location
@@ -907,7 +916,7 @@ class TropoAGItate
           command = @agi_client.gets
           show "Raw string: #{command}"
           result = execute_command(command)
-          response = @agi_client.write(result)
+          @agi_client.write(result)
         rescue => e
           @current_call.log '====> Broken pipe to the AGI server, Adhearsion tends to drop the socket after sending a hangup. <===='
           show "Error is: #{e}"
@@ -924,8 +933,6 @@ class TropoAGItate
   #
   # @return nil
   def create_socket_connection
-    @agi_uri = URI.parse @tropo_agi_config['agi']['uri']
-    @agi_uri.port = 4573 if @agi_uri.port.nil?
     @current_call.log "Connecting to AGI server at #{@agi_uri.host}:#{@agi_uri.port}"
     @agi_client = TCPSocket.new(@agi_uri.host, @agi_uri.port)
     @agi_client.write(initial_message(@agi_uri.host, @agi_uri.port, @agi_uri.path[1..-1]))
@@ -984,7 +991,7 @@ agi_callingtns: 0
 agi_dnid: #{@current_call.calledID}
 agi_rdnis: #{rdnis}
 agi_context: #{agi_context}
-agi_extension: 1
+agi_extension: #{@agi_exten}
 agi_priority: 1
 agi_enhanced: 0.0
 agi_accountcode: 0
@@ -1160,6 +1167,7 @@ MSG
     alias :[]= :set
 
     def get(k)
+      log "Fetching value for #{k} with #{@variables.inspect}"
       case k
       when "CALLERIDNAME", "CALLERID(name)"
         @variables[:callerid][:name]
@@ -1200,6 +1208,44 @@ MSG
       @variables.send(m, *args)
     end
   end
+
+  ##
+  # This class emulates the Tropo callObject object for the purposes of allowing
+  # Tropo-AGItate to emulate Asterisk "h" (hangup) and "failed" special calls.
+  class DeadCall
+    attr_accessor :callerID, :calledID, :callerName
+
+    def initialize(system, info)
+      require 'digest/md5'
+      require 'time'
+      # Proxy object to the global namespace
+      @system = system
+      # Fake a channel ID since we don't have a real channel to provide one
+      @id         = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
+      @callerID   = info[:callerID]
+      @calledID   = info[:destination]
+      @callerName = info[:callerName] || ""
+      @active     = true
+    end
+
+    def isActive
+      # This is probably a lie, but without it the read loop bails.
+      # A dead channel is accessible for getting variables, but not much else.
+      @active
+    end
+
+    def log(message)
+      @system.send :log, message
+    end
+
+    def hangup
+      @active = false
+    end
+
+#    def method_missing(method, *args)
+#      @system.send(method.to_sym, *args)
+#    end
+  end
 end#end class TropoAGItate
 
 # Are we running as a spec, or is this live?
@@ -1221,19 +1267,29 @@ if @tropo_testing.nil?
 
     # If voice turn the phone number into a Tel URI, but only if not a SIP URI
     $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice' && $destination[0..2] != 'sip'
+    options[:destination] = $destination
 
     log "====> Calling to: #{$destination} - with these options: #{options.inspect} <===="
     # Place the call
-    call $destination, options
+    result = call $destination, options
   end
 
-  # If we have an active call, start running the AGI client
-  if $currentCall
-    # Create the instance of TropoAGItate with Tropo's currentCall object
-    tropo_agi = TropoAGItate.new($currentCall, $currentApp)
-    # Start sending/receiving AGI commands via the TCP socket
-    tropo_agi.run
+  if !$currentCall
+    # If the call failed, let the application know.
+    tropo_agi = TropoAGItate.new(TropoAGItate::DeadCall.new(self, options), $currentApp)
+    tropo_agi.agi_exten = 'failed'
+    log "Result: #{result.inspect}"
+    tropo_agi.commands.chanvars['REASON'] = case result.name
+    when 'timeout'     then 0
+    when 'hangup'      then 1
+    when 'error'       then 8
+    when 'callfailure' then 8
+    end
   else
-    log '====> No Outbound Address Provided - Exiting <===='
+    # This is a connected call
+    tropo_agi = TropoAGItate.new($currentCall, $currentApp)
   end
+
+  tropo_agi.agi_uri.path = $agi_path if $agi_path
+  tropo_agi.run
 end
