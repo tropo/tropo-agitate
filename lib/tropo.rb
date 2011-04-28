@@ -90,6 +90,10 @@ class CurrentApp
     end
   end
 
+  def initialize(app_id = 49767)
+    @app_id = app_id
+  end
+
   def self.app
     GetApp.new
   end
@@ -98,13 +102,15 @@ class CurrentApp
     @cnt = 0 if @cnt.nil?
 
     # This is only for testing JT!!!
-    if @cnt < 3
-      @cnt += 1
+    case @app_id
+    when 49767
       # Keep returning Windows format
       'c:\tropo_app_home\49767'
-    else
+    when 49768
       # Then return the Linux format for the last test
       '/tropo_app_home/49768'
+    else
+      raise "Unknown application id!"
     end
   end
 end

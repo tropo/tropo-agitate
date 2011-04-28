@@ -7,6 +7,7 @@ end
 group :development do
   gem 'eventmachine'
   gem 'rspec', '>= 2.0.0'
+  gem 'flexmock'
   gem 'fakeweb'
   #gem 'em-spec'
 end
