@@ -33,7 +33,7 @@ describe "TropoAGItate" do
       h.should == { :foo => 'yes', :bar => 'no' }
     end
   end
-  
+
   it "should create a properly formatted initial message" do
     agi_uri  = URI.parse @tropo_agitate.tropo_agi_config['agi']['uri_for_local_tests']
     message  = @tropo_agitate.initial_message(agi_uri.host, agi_uri.port, agi_uri.path[1..-1])
@@ -55,7 +55,7 @@ agi_callingtns: 0
 agi_dnid: #{@current_call.calledID}
 agi_rdnis: unknown
 agi_context: #{agi_uri.path[1..-1]}
-agi_extension: 1
+agi_extension: s
 agi_priority: 1
 agi_enhanced: 0.0
 agi_accountcode: 0
@@ -208,26 +208,26 @@ MSG
     command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
     command.should == "200 result=1 (green)\n"
   end
-  
+
   it "should execute the command as Asterisk-Java would pass" do
     command = @tropo_agitate.execute_command('EXEC "playback" "tt-monkeys"')
     command.should == "200 result=0\n"
-    
+
     command = @tropo_agitate.execute_command('STREAM FILE "tt-monkeys" "1234567890*#"')
     command.should == "200 result=57 endpos=0\n"
   end
-  
+
   it "should handle the STREAM FILE requests" do
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys 1234567890*#')
     command.should == "200 result=57 endpos=0\n"
-    
+
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys')
     command.should == "200 result=0 endpos=0\n"
-    
+
     command = @tropo_agitate.execute_command('STREAM STREAMFILE tt-monkeys 1234567890*#')
     command.should == "200 result=57 endpos=0\n"
   end
-  
+
   it "should return the account data from a directory lookup on Windows" do
     TropoAGItate.new(@current_call, CurrentApp.new(49767)).fetch_account_data[1].should == '49767'
   end
@@ -237,7 +237,7 @@ MSG
                          :body => File.open('tropo_agi_config/tropo_agi_config.yml').read)
     TropoAGItate.new(@current_call, CurrentApp.new(49768)).fetch_account_data[1].should == '49768'
   end
-  
+
   it "should execute a read" do
     command = @tropo_agitate.execute_command('EXEC READ pin,tt monkeys,5,,3,10')
     command.should == "200 result=0\n"
