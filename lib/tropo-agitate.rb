@@ -911,7 +911,7 @@ class TropoAGItate
   # @return [Boolean] whether the socket is open or not
   def run
     if create_socket_connection
-      while @current_call.isActive
+      until @agi_client.closed?
         begin
           command = @agi_client.gets
           show "Raw string: #{command}"
