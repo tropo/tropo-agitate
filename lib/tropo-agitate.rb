@@ -1260,7 +1260,7 @@ if @tropo_testing.nil?
     #  User may pass in AIM, GTALK, MSN, JABBER, TWITTER, SMS or YAHOO, SMS is default
     options[:network]  = $network || 'SMS'
     # Time tropo will wait before hanging up, default is 30
-    options[:timeout]  = $timeout if $timeout
+    options[:timeout]  = $timeout.to_i if $timeout
 
     # If voice turn the phone number into a Tel URI, but only if not a SIP URI
     $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice' && $destination[0..2] != 'sip'
