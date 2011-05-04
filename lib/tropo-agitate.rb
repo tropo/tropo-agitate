@@ -703,7 +703,8 @@ class TropoAGItate
       else
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
-      @agi_response + response.value[0].to_s + "\n"
+      digit = response.value.nil? ? 0 : response.value[0]
+      @agi_response + digit.to_s + "\n"
     rescue => e
       log_error(this_method, e)
     end
