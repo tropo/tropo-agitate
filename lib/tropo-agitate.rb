@@ -4,18 +4,6 @@
 # VERSION = '0.1.8'
 #####
 
-# If we are testing, then add some methods, $currentCall will be nil if a call did not start this session
-if $currentCall.nil? && $destination.nil?
-  Object.class_eval do
-    def log(val)
-      #STDERR.puts val
-    end
-    def show(val)
-      log("====> #{val} <====")
-    end
-  end
-end
-
 # We patch the Hash class to symbolize our keys
 class Hash
   def symbolize_keys
@@ -1245,9 +1233,8 @@ MSG
   end
 end#end class TropoAGItate
 
-# Are we running as a spec, or is this live?
-if @tropo_testing.nil?
-  log "====> Running Tropo-AGI <===="
+def agitate_factory
+  log "====> Starting Tropo-AGItate <===="
 
   # If this is an outbound request place the call
   # see: https://www.tropo.com/docs/scripting/call.htm
@@ -1273,20 +1260,21 @@ if @tropo_testing.nil?
 
   if $currentCall
     # This is a connected call
-    tropo_agi = TropoAGItate.new $currentCall, $currentApp
+    agitate = TropoAGItate.new $currentCall, $currentApp
   else
     # If the call failed, let the application know.
-    tropo_agi = TropoAGItate.new TropoAGItate::DeadCall.new(self, options), $currentApp
-    tropo_agi.agi_exten = 'failed'
+    agitate = TropoAGItate.new TropoAGItate::DeadCall.new(self, options), $currentApp
+    agitate.agi_exten = 'failed'
     log "Result: #{result.inspect}"
-    tropo_agi.commands.chanvars['REASON'] = case result.name
+    agitate.commands.chanvars['REASON'] = case result.name
     when 'timeout'     then 0
     when 'hangup'      then 1
     when 'error'       then 8
     when 'callfailure' then 8
     end
   end
-
-  tropo_agi.agi_uri.path = $agi_path if $agi_path
-  tropo_agi.run
+  agitate.agi_uri.path = $agi_path if $agi_path
+  agitate
 end
+
+agitate_factory.run if !@tropo_testing

@@ -1,3 +1,22 @@
+# For testing outside of Tropo we need to mock the global methods
+# for logging and call management.
+module Tropo
+  def log(val)
+    #STDERR.puts val
+  end
+
+  def show(val)
+    log("====> #{val} <====")
+  end
+
+  def call
+    raise "Unimplemented!"
+  end
+end
+# Make these methods global.
+Object.send(:include, Tropo)
+@tropo_testing = true
+
 # Here for testing outside of Tropo, we need to mock the return on ask
 class AskResponse
   class Choice
