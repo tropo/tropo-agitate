@@ -248,4 +248,23 @@ MSG
     command = @tropo_agitate.execute_command('EXEC READ pin,tt monkeys,5,,3,10')
     command.should == "200 result=0\n"
   end
+
+  it 'should properly dial an outbound call when invoked via REST' do
+    # Simulate parameters passed as query string variables
+    $currentCall = nil
+    $destination = '14045556789'
+    $caller_id   = '14155551234'
+    $timeout     = '47'
+
+    options = {:callerID => $caller_id,
+               :timeout => $timeout.to_i,
+               :channel => 'voice',
+               :network => 'SMS'}
+
+    # Test the origination
+    response = TropoEvent.new
+    response.name = 'answer'
+    flexmock(self).should_receive(:call).with("tel:+#{$destination}", options).and_return response
+    @tropo_agitate = agitate_factory
+  end
 end
