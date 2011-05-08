@@ -7,6 +7,8 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'agi_config'))
 
 RSpec.configure do |config|
   config.mock_with :flexmock
+  config.filter_run :focus => true
+  config.run_all_when_everything_filtered = true
 end
 
 # NOTE!
