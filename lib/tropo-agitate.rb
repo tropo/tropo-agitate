@@ -1200,7 +1200,7 @@ MSG
   class DeadCall
     attr_accessor :callerID, :calledID, :callerName
 
-    def initialize(system, info)
+    def initialize(system, destination, info)
       require 'digest/md5'
       require 'time'
       # Proxy object to the global namespace
@@ -1208,7 +1208,7 @@ MSG
       # Fake a channel ID since we don't have a real channel to provide one
       @id         = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
       @callerID   = info[:callerID]
-      @calledID   = info[:destination]
+      @calledID   = destination
       @callerName = info[:callerName] || ""
       @active     = true
     end
@@ -1251,10 +1251,10 @@ def agitate_factory
 
     # If voice turn the phone number into a Tel URI, but only if not a SIP URI
     $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice' && $destination[0..2] != 'sip'
-    options[:destination] = $destination
 
     log "====> Calling to: #{$destination} - with these options: #{options.inspect} <===="
     # Place the call
+
     result = call $destination, options
   end
 
@@ -1263,7 +1263,8 @@ def agitate_factory
     agitate = TropoAGItate.new $currentCall, $currentApp
   else
     # If the call failed, let the application know.
-    agitate = TropoAGItate.new TropoAGItate::DeadCall.new(self, options), $currentApp
+    deadcall = TropoAGItate::DeadCall.new(self, $destination, options)
+    agitate = TropoAGItate.new deadcall, $currentApp
     agitate.agi_exten = 'failed'
     log "Result: #{result.inspect}"
     agitate.commands.chanvars['REASON'] = case result.name
