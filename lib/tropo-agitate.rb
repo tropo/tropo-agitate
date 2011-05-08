@@ -1198,7 +1198,7 @@ MSG
   # This class emulates the Tropo callObject object for the purposes of allowing
   # Tropo-AGItate to emulate Asterisk "h" (hangup) and "failed" special calls.
   class DeadCall
-    attr_accessor :callerID, :calledID, :callerName
+    attr_accessor :callerID, :calledID, :callerName, :id
 
     def initialize(system, destination, info)
       require 'digest/md5'
