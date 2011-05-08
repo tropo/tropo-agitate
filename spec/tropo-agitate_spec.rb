@@ -267,4 +267,28 @@ MSG
     flexmock(self).should_receive(:call).with("tel:+#{$destination}", options).and_return response
     @tropo_agitate = agitate_factory
   end
+
+  it 'should send a "failed" call when dial results in an error' do
+    # Simulate parameters passed as query string variables
+    $currentCall = nil
+    $destination = 'XXX'
+    $caller_id   = '14155551234'
+    $timeout     = '47'
+
+    options = {:callerID => $caller_id,
+               :timeout => $timeout.to_i,
+               :channel => 'voice',
+               :network => 'SMS'}
+
+    # Test the origination
+    response = TropoEvent.new
+    response.name = 'error'
+    flexmock(self).should_receive(:call).with("tel:+#{$destination}", options).and_return response
+    @tropo_agitate = agitate_factory
+
+    agi_environment = @tropo_agitate.initial_message('127.0.0.1', 1, 'example').split("\n")
+    agi_environment.grep(/agi_extension/)[0].match(/^agi_extension: (.*)$/)[1].should == 'failed'
+
+    @tropo_agitate.execute_command('GET VARIABLE REASON').should == "200 result=1 (8)\n"
+  end
 end
