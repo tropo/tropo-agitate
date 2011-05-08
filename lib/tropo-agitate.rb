@@ -638,7 +638,7 @@ class TropoAGItate
       when 'get'
         varname = strip_quotes(options[:args][0].to_s)
         if @chanvars[varname]
-          @agi_response + '1 (' + @chanvars[varname] + ")\n"
+          @agi_response + '1 (' + @chanvars[varname].to_s + ")\n"
         else
           # Variable has not been set
           @agi_response + "0\n"
