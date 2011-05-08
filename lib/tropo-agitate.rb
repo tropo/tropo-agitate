@@ -4,18 +4,6 @@
 # VERSION = '0.1.8'
 #####
 
-# If we are testing, then add some methods, $currentCall will be nil if a call did not start this session
-if $currentCall.nil? && $destination.nil?
-  Object.class_eval do
-    def log(val)
-      #STDERR.puts val
-    end
-    def show(val)
-      log("====> #{val} <====")
-    end
-  end
-end
-
 # We patch the Hash class to symbolize our keys
 class Hash
   def symbolize_keys
@@ -24,7 +12,7 @@ class Hash
       options
     end
   end
-  
+
   def symbolize_keys!
     self.replace(self.symbolize_keys)
   end
@@ -33,6 +21,8 @@ end
 #########
 # @author Jason Goecke
 class TropoAGItate
+  attr_accessor :agi_uri, :agi_exten, :commands
+
   module Helpers
     ##
     # Strips the quotes from a string
@@ -66,6 +56,8 @@ class TropoAGItate
 
   include Helpers
   class Commands
+    attr_accessor :chanvars
+
     include Helpers
 
     ##
@@ -258,20 +250,20 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def file(options={})
       check_state
-      
+
       @wait_for_digits_options = parse_input_string options[:args][0], 16
       if @wait_for_digits_options.nil?
         prompt, escape_digits = extract_prompt_and_escape_digits(options[:args][0])
-        
+
         asterisk_sound_url = fetch_asterisk_sound(prompt)
         prompt = asterisk_sound_url if asterisk_sound_url
-        
+
         if escape_digits.nil?
           @current_call.say prompt, :voice => @tropo_voice
           result = @agi_response + "0 endpos=0\n"
         else
           # Timeout is set to 0 so we return immediately after playback
-          response = @current_call.ask prompt, { :choices    => create_choices(escape_digits), 
+          response = @current_call.ask prompt, { :choices    => create_choices(escape_digits),
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
           digit = response.value.nil? ? 0 : response.value[0]
@@ -395,26 +387,26 @@ class TropoAGItate
     # @return [String] the response in the AGI raw form
     def read(options={})
       check_state
-      
+
       # Check to see if the READ arguments were sent in quotes, like from Asterisk-Java
       options[:args] = options[:args][0].split(',', -4) if options[:args].length == 1
-      
+
       # Set defaults
       prompt, choices, attempts, timeout = 'silence', '[1-255 DIGITS]', 1, 30
-      
+
       # Set the prompt
       prompt = options[:args][1]  if options[:args][1] != ""
       asterisk_sound_url = fetch_asterisk_sound(prompt)
       prompt = asterisk_sound_url if asterisk_sound_url
-      
+
       # Set other values if provided
       choices = "[1-#{options[:args][2]} DIGITS]" unless options[:args][2].nil? || options[:args][2].empty?
       attempts = options[:args][4] unless options[:args][4].nil? || options[:args][4].empty?
       timeout = options[:args][5].to_f unless options[:args][5].nil? || options[:args][5].empty?
-      
+
       response = nil
       attempts.to_i.times do
-        response = @current_call.ask prompt, { :choices    => choices, 
+        response = @current_call.ask prompt, { :choices    => choices,
                                                :choiceMode => 'keypad',
                                                :terminator => '#',
                                                :timeout    => timeout }
@@ -425,7 +417,7 @@ class TropoAGItate
       @chanvars[options[:args][0]] = response.value
       @agi_response + "0\n"
     end
-    
+
     ##
     # Used to change the voice being used for speech recognition/ASR
     #
@@ -644,8 +636,9 @@ class TropoAGItate
         @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
         @agi_response + "0\n"
       when 'get'
-        if @chanvars[strip_quotes(options[:args][0])]
-          @agi_response + '1 (' + @chanvars[strip_quotes(options[:args][0])] + ")\n"
+        varname = strip_quotes(options[:args][0].to_s)
+        if @chanvars[varname]
+          @agi_response + '1 (' + @chanvars[varname].to_s + ")\n"
         else
           # Variable has not been set
           @agi_response + "0\n"
@@ -718,7 +711,7 @@ class TropoAGItate
     end
 
     private
-    
+
     ##
     # Automatically answers the call/session if not explicitly done
     def check_state
@@ -732,7 +725,7 @@ class TropoAGItate
       end
       true
     end
-    
+
     ##
     # Converts the choices passed in a STREAM FILE into the requisite comma-delimited format for Tropo
     #
@@ -747,7 +740,7 @@ class TropoAGItate
       end
       choices.chop
     end
-    
+
     ##
     # Extracts the prompt and escape digits from a STREAM FILE request
     #
@@ -761,7 +754,7 @@ class TropoAGItate
         return match_data.pre_match.rstrip, match_data[0]
       end
     end
-    
+
     ##
     # Returns the URI location of the Asterisk sound file if it is available
     #
@@ -888,6 +881,10 @@ class TropoAGItate
     @tropo_agi_config = tropo_agi_config
     show "With Configuration  #{@tropo_agi_config.inspect}"
     @commands = Commands.new(@current_call, @tropo_agi_config)
+
+    @agi_uri = URI.parse @tropo_agi_config['agi']['uri']
+    @agi_uri.port = 4573 if @agi_uri.port.nil?
+    @agi_exten = 's'
   rescue => e
       show "Could not find your configuration file. #{e.inspect}"
       # Could not find any config, so failing over to the default location
@@ -902,12 +899,12 @@ class TropoAGItate
   # @return [Boolean] whether the socket is open or not
   def run
     if create_socket_connection
-      while @current_call.isActive
+      until @agi_client.closed?
         begin
           command = @agi_client.gets
           show "Raw string: #{command}"
-          result = execute_command(command)
-          response = @agi_client.write(result)
+          result = execute_command command
+          @agi_client.write result
         rescue => e
           @current_call.log '====> Broken pipe to the AGI server, Adhearsion tends to drop the socket after sending a hangup. <===='
           show "Error is: #{e}"
@@ -924,18 +921,16 @@ class TropoAGItate
   #
   # @return nil
   def create_socket_connection
-    @agi_uri = URI.parse @tropo_agi_config['agi']['uri']
-    @agi_uri.port = 4573 if @agi_uri.port.nil?
     @current_call.log "Connecting to AGI server at #{@agi_uri.host}:#{@agi_uri.port}"
-    @agi_client = TCPSocket.new(@agi_uri.host, @agi_uri.port)
-    @agi_client.write(initial_message(@agi_uri.host, @agi_uri.port, @agi_uri.path[1..-1]))
+    @agi_client = TCPSocket.new @agi_uri.host, @agi_uri.port
+    @agi_client.write initial_message(@agi_uri.host, @agi_uri.port, @agi_uri.path[1..-1])
     true
   rescue => e
     # If we can not open the socket to the AGI server, play/log an error message and hangup the call
     error_message = 'We are unable to connect to the A G I server at this time, please try again later.'
     @current_call.log "====> #{error_message} <===="
     @current_call.log e
-    failover(@tropo_agi_config['tropo']['next_sip_uri'])
+    failover @tropo_agi_config['tropo']['next_sip_uri']
     false
   end
 
@@ -944,10 +939,7 @@ class TropoAGItate
   #
   # @return [Boolean] indicates if the socket is open or closed, true if closed, false if open
   def close_socket
-    begin
-      @agi_client.close
-    rescue => e
-    end
+    @agi_client.close rescue
     @agi_client.closed?
   end
 
@@ -984,7 +976,7 @@ agi_callingtns: 0
 agi_dnid: #{@current_call.calledID}
 agi_rdnis: #{rdnis}
 agi_context: #{agi_context}
-agi_extension: 1
+agi_extension: #{@agi_exten}
 agi_priority: 1
 agi_enhanced: 0.0
 agi_accountcode: 0
@@ -1160,6 +1152,7 @@ MSG
     alias :[]= :set
 
     def get(k)
+      log "Fetching value for #{k} with #{@variables.inspect}"
       case k
       when "CALLERIDNAME", "CALLERID(name)"
         @variables[:callerid][:name]
@@ -1200,40 +1193,89 @@ MSG
       @variables.send(m, *args)
     end
   end
+
+  ##
+  # This class emulates the Tropo callObject object for the purposes of allowing
+  # Tropo-AGItate to emulate Asterisk "h" (hangup) and "failed" special calls.
+  class DeadCall
+    attr_accessor :callerID, :calledID, :callerName, :id
+
+    def initialize(system, destination, info)
+      require 'digest/md5'
+      require 'time'
+      # Proxy object to the global namespace
+      @system = system
+      # Fake a channel ID since we don't have a real channel to provide one
+      @id         = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
+      @callerID   = info[:callerID]
+      @calledID   = destination
+      @callerName = info[:callerName] || ""
+      @active     = true
+    end
+
+    def isActive
+      # This is probably a lie, but without it the read loop bails.
+      # A dead channel is accessible for getting variables, but not much else.
+      @active
+    end
+
+    def log(message)
+      @system.send :log, message
+    end
+
+    def hangup
+      @active = false
+    end
+
+#    def method_missing(method, *args)
+#      @system.send(method.to_sym, *args)
+#    end
+  end
 end#end class TropoAGItate
 
-# Are we running as a spec, or is this live?
-if @tropo_testing.nil?
-  log "====> Running Tropo-AGI <===="
+def agitate_factory
+  log "====> Starting Tropo-AGItate <===="
 
   # If this is an outbound request place the call
   # see: https://www.tropo.com/docs/scripting/call.htm
   if $destination
     options = {}
     # User may pass in the caller ID to use
-    options[:callerID]  = $caller_id if $caller_id
+    options[:callerID] = $caller_id if $caller_id
     # User may pass in text or voice to use for the channel
-    options[:channel]   = $channel || 'voice'
+    options[:channel]  = $channel || 'voice'
     #  User may pass in AIM, GTALK, MSN, JABBER, TWITTER, SMS or YAHOO, SMS is default
-    options[:network]   = $network || 'SMS'
+    options[:network]  = $network || 'SMS'
     # Time tropo will wait before hanging up, default is 30
-    options[:timeout]   = $timeout if $timeout
+    options[:timeout]  = $timeout.to_i if $timeout
 
     # If voice turn the phone number into a Tel URI, but only if not a SIP URI
     $destination = 'tel:+' + $destination if options[:channel].downcase == 'voice' && $destination[0..2] != 'sip'
 
     log "====> Calling to: #{$destination} - with these options: #{options.inspect} <===="
     # Place the call
-    call $destination, options
+
+    result = call $destination, options
   end
 
-  # If we have an active call, start running the AGI client
   if $currentCall
-    # Create the instance of TropoAGItate with Tropo's currentCall object
-    tropo_agi = TropoAGItate.new($currentCall, $currentApp)
-    # Start sending/receiving AGI commands via the TCP socket
-    tropo_agi.run
+    # This is a connected call
+    agitate = TropoAGItate.new $currentCall, $currentApp
   else
-    log '====> No Outbound Address Provided - Exiting <===='
+    # If the call failed, let the application know.
+    deadcall = TropoAGItate::DeadCall.new(self, $destination, options)
+    agitate = TropoAGItate.new deadcall, $currentApp
+    agitate.agi_exten = 'failed'
+    log "Result: #{result.inspect}"
+    agitate.commands.chanvars['REASON'] = case result.name
+    when 'timeout'     then 0
+    when 'hangup'      then 1
+    when 'error'       then 8
+    when 'callfailure' then 8
+    end
   end
+  agitate.agi_uri.path = $agi_path if $agi_path
+  agitate
 end
+
+agitate_factory.run if !@tropo_testing
