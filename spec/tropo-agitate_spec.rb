@@ -20,6 +20,11 @@ describe "TropoAGItate" do
     $currentCall   = CurrentCall.new
     $currentApp    = CurrentApp.new
     $incomingCall  = IncomingCall.new
+    $destination   = nil
+    $caller_id     = nil
+    $timeout       = nil
+    $network       = nil
+    $channel       = nil
     @tropo_agitate = agitate_factory
   end
 
