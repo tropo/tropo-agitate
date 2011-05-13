@@ -904,10 +904,12 @@ class TropoAGItate
           show "Raw string: #{command}"
           result = execute_command command
           @agi_client.write result
+        rescue Errno::EPIPE
+          show 'AGI socket closed by client.'
         rescue => e
-          @current_call.log '====> Broken pipe to the AGI server, Adhearsion tends to drop the socket after sending a hangup. <===='
           show "Error Class: #{e.class.inspect}"
           show "Error is: #{e}"
+        ensure
           @current_call.hangup
           break
         end
