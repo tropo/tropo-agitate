@@ -47,10 +47,10 @@ describe "TropoAGItate" do
 agi_network: yes
 agi_network_script: #{agi_uri.path[1..-1]}
 agi_request: agi://#{agi_uri.host}:#{agi_uri.port}#{agi_uri.path}
-agi_channel: TROPO/#{$currentCall.id}
+agi_channel: TROPO/#{$currentCall.sessionId}
 agi_language: en
 agi_type: TROPO
-agi_uniqueid: #{$currentCall.id}
+agi_uniqueid: #{$currentCall.sessionId}
 agi_version: tropo-agi-0.1.0
 agi_callerid: #{$currentCall.callerID}
 agi_calleridname: #{$currentCall.callerName}

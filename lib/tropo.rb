@@ -77,7 +77,7 @@ module Tropo
       @state    = 'DISCONNECTED'
     end
 
-    def id; '1234'; end
+    def sessionId; '1234'; end
     def log(text); text; end
     def meetme(text, *rest); "meetme: #{text.inspect}, #{rest.inspect}"; end
     def say(text, options); 'say response: text'; options; end
