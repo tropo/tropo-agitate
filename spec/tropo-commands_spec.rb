@@ -90,13 +90,17 @@ describe "TropoAGItate::TropoCommands" do
     @tropo_commands.record(options).should == "200 result=0\n"
   end
 
-  it "should return a valid string when we reqeust a monitor/mixmonitor/startcallrecording" do
+  it "should return a valid string when we reqeust a monitor/mixmonitor" do
+    options = {:args => ['http://localhost/save_recording']}
+    @tropo_commands.monitor(options).should == "200 result=0\n"
+    @tropo_commands.mixmonitor(options).should == "200 result=0\n"
+  end
+
+  it "should return a valid string when we reqeust a startcallrecording" do
     options = { :args => { "uri"                 => "http://localhost/post_audio_to_s3?filename=voicemail.mp3",
                            "method"              => "POST",
                            "format"              => "mp3",
                            "transcriptionOutURI" => "mailto:jsgoecke@voxeo.com"} }
-    @tropo_commands.monitor(options).should == "200 result=0\n"
-    @tropo_commands.mixmonitor(options).should == "200 result=0\n"
     @tropo_commands.startcallrecording(options).should == "200 result=0\n"
   end
 

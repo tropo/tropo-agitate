@@ -83,7 +83,7 @@ module Tropo
     def say(text, options); 'say response: text'; options; end
     def setHeader(header, value); @headers[header] = value; end
     def sipgetheader(calleridname); calleridname; end
-    def startCallRecording(uri, options); nil ; end
+    def startCallRecording(uri, options={}); nil ; end
     def stopCallRecording; nil; end
     def state; 'RINGING'; end
     def record(uri, options); true; end
