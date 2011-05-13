@@ -17,9 +17,15 @@ describe "TropoAGItate" do
   end
 
   before(:each) do
-    @current_call  = CurrentCall.new
+    $currentCall   = CurrentCall.new
+    $currentApp    = CurrentApp.new
     $incomingCall  = IncomingCall.new
-    @tropo_agitate = TropoAGItate.new(@current_call, CurrentApp.new)
+    $destination   = nil
+    $caller_id     = nil
+    $timeout       = nil
+    $network       = nil
+    $channel       = nil
+    @tropo_agitate = agitate_factory
   end
 
   it "should create a TropoAGItate object" do
@@ -33,7 +39,7 @@ describe "TropoAGItate" do
       h.should == { :foo => 'yes', :bar => 'no' }
     end
   end
-  
+
   it "should create a properly formatted initial message" do
     agi_uri  = URI.parse @tropo_agitate.tropo_agi_config['agi']['uri_for_local_tests']
     message  = @tropo_agitate.initial_message(agi_uri.host, agi_uri.port, agi_uri.path[1..-1])
@@ -41,21 +47,21 @@ describe "TropoAGItate" do
 agi_network: yes
 agi_network_script: #{agi_uri.path[1..-1]}
 agi_request: agi://#{agi_uri.host}:#{agi_uri.port}#{agi_uri.path}
-agi_channel: TROPO/#{@current_call.id}
+agi_channel: TROPO/#{$currentCall.id}
 agi_language: en
 agi_type: TROPO
-agi_uniqueid: #{@current_call.id}
+agi_uniqueid: #{$currentCall.id}
 agi_version: tropo-agi-0.1.0
-agi_callerid: #{@current_call.callerID}
-agi_calleridname: #{@current_call.callerName}
+agi_callerid: #{$currentCall.callerID}
+agi_calleridname: #{$currentCall.callerName}
 agi_callingpres: 0
 agi_callingani2: 0
 agi_callington: 0
 agi_callingtns: 0
-agi_dnid: #{@current_call.calledID}
+agi_dnid: #{$currentCall.calledID}
 agi_rdnis: unknown
 agi_context: #{agi_uri.path[1..-1]}
-agi_extension: 1
+agi_extension: s
 agi_priority: 1
 agi_enhanced: 0.0
 agi_accountcode: 0
@@ -132,17 +138,17 @@ MSG
     @tropo_agitate.execute_command("EXEC Dial \"#{dest}\",\"20\",\"\"")
     command = @tropo_agitate.execute_command('GET VARIABLE DIALSTATUS')
     command.should == "200 result=1 (ANSWER)\n"
-    @current_call.transferInfo[:destinations].should == [dest]
+    $currentCall.transferInfo[:destinations].should == [dest]
   end
 
   it "should set the dial timeout correctly" do
     timeout = 45
     @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"#{timeout}\",\"\"")
-    @current_call.transferInfo[:options][:timeout].should == timeout
+    $currentCall.transferInfo[:options][:timeout].should == timeout
   end
 
   it "should properly detect an answering machine" do
-    flexmock(@current_call).should_receive(:record).and_return do |*args|
+    flexmock($currentCall).should_receive(:record).and_return do |*args|
       # Simulate a long recording, indicating that silence is not received for more than 4 seconds
       sleep 5
     end
@@ -167,7 +173,7 @@ MSG
     callerid = "4045551234"
     @tropo_agitate.execute_command("SET VARIABLE CALLERID(num) #{callerid}")
     @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"30\",\"\"")
-    @current_call.transferInfo[:options][:callerID].should == callerid
+    $currentCall.transferInfo[:options][:callerID].should == callerid
   end
 
   it "should execute the command" do
@@ -208,38 +214,81 @@ MSG
     command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
     command.should == "200 result=1 (green)\n"
   end
-  
+
   it "should execute the command as Asterisk-Java would pass" do
     command = @tropo_agitate.execute_command('EXEC "playback" "tt-monkeys"')
     command.should == "200 result=0\n"
-    
+
     command = @tropo_agitate.execute_command('STREAM FILE "tt-monkeys" "1234567890*#"')
     command.should == "200 result=57 endpos=0\n"
   end
-  
+
   it "should handle the STREAM FILE requests" do
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys 1234567890*#')
     command.should == "200 result=57 endpos=0\n"
-    
+
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys')
     command.should == "200 result=0 endpos=0\n"
-    
+
     command = @tropo_agitate.execute_command('STREAM STREAMFILE tt-monkeys 1234567890*#')
     command.should == "200 result=57 endpos=0\n"
   end
-  
+
   it "should return the account data from a directory lookup on Windows" do
-    TropoAGItate.new(@current_call, CurrentApp.new(49767)).fetch_account_data[1].should == '49767'
+    TropoAGItate.new($currentCall, CurrentApp.new(49767)).fetch_account_data[1].should == '49767'
   end
 
   it "should return the account data from a directory lookup on Linux" do
     FakeWeb.register_uri(:get, "http://hosting.tropo.com/49768/www/tropo_agi_config/tropo_agi_config.yml",
                          :body => File.open('tropo_agi_config/tropo_agi_config.yml').read)
-    TropoAGItate.new(@current_call, CurrentApp.new(49768)).fetch_account_data[1].should == '49768'
+    TropoAGItate.new($currentCall, CurrentApp.new(49768)).fetch_account_data[1].should == '49768'
   end
-  
+
   it "should execute a read" do
     command = @tropo_agitate.execute_command('EXEC READ pin,tt monkeys,5,,3,10')
     command.should == "200 result=0\n"
+  end
+
+  it 'should properly dial an outbound call when invoked via REST' do
+    # Simulate parameters passed as query string variables
+    $currentCall = nil
+    $destination = '14045556789'
+    $caller_id   = '14155551234'
+    $timeout     = '47'
+
+    options = {:callerID => $caller_id,
+               :timeout => $timeout.to_i,
+               :channel => 'voice',
+               :network => 'SMS'}
+
+    # Test the origination
+    response = TropoEvent.new
+    response.name = 'answer'
+    flexmock(self).should_receive(:call).with("tel:+#{$destination}", options).and_return response
+    @tropo_agitate = agitate_factory
+  end
+
+  it 'should send a "failed" call when dial results in an error' do
+    # Simulate parameters passed as query string variables
+    $currentCall = nil
+    $destination = 'XXX'
+    $caller_id   = '14155551234'
+    $timeout     = '47'
+
+    options = {:callerID => $caller_id,
+               :timeout => $timeout.to_i,
+               :channel => 'voice',
+               :network => 'SMS'}
+
+    # Test the origination
+    response = TropoEvent.new
+    response.name = 'error'
+    flexmock(self).should_receive(:call).with("tel:+#{$destination}", options).and_return response
+    @tropo_agitate = agitate_factory
+
+    agi_environment = @tropo_agitate.initial_message('127.0.0.1', 1, 'example').split("\n")
+    agi_environment.grep(/agi_extension/)[0].match(/^agi_extension: (.*)$/)[1].should == 'failed'
+
+    @tropo_agitate.execute_command('GET VARIABLE REASON').should == "200 result=1 (8)\n"
   end
 end
