@@ -343,14 +343,27 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def monitor(options={})
       check_state
-
-      @current_call.startCallRecording options[:args]['uri'], options[:args]
+      @current_call.startCallRecording options[:args].first
       @agi_response + "0\n"
     rescue => e
       log_error(this_method, e)
     end
     alias :mixmonitor :monitor
-    alias :startcallrecording :monitor
+
+    ##
+    # Tropo-native method to record a call
+    # Tropo: https://www.tropo.com/docs/scripting/startcallrecording.htm
+    #
+    # @param [Hash] options used to build the startCallRecording
+    #
+    # @return [String] the response in AGI raw form
+    def startcallrecording(options={})
+      check_state
+      @current_call.startCallRecording options[:args].delete('uri'), options[:args]
+      @agi_response + "0\n"
+    rescue => e
+      log_error(this_method, e)
+    end
 
     ##
     # Initiates a playback to the Tropo call object for Speech Synthesis/TTS
@@ -610,8 +623,7 @@ class TropoAGItate
     #
     # @return [String] the AGI response
     def stopcallrecording(options={})
-      check_state
-
+      # This command is permissible on a dead channel.
       @current_call.stopCallRecording
       @agi_response + "0\n"
     rescue => e
@@ -905,10 +917,14 @@ class TropoAGItate
           show "Raw string: #{command}"
           result = execute_command command
           @agi_client.write result
+        rescue Errno::EPIPE
+          show 'AGI socket closed by client.'
         rescue => e
-          @current_call.log '====> Broken pipe to the AGI server, Adhearsion tends to drop the socket after sending a hangup. <===='
+          show "Error Class: #{e.class.inspect}"
           show "Error is: #{e}"
+        ensure
           @current_call.hangup
+          break
         end
       end
       close_socket
@@ -962,10 +978,10 @@ class TropoAGItate
 agi_network: yes
 agi_network_script: #{agi_context}
 agi_request: agi://#{agi_host}:#{agi_port}/#{agi_context}
-agi_channel: TROPO/#{@current_call.id}
+agi_channel: TROPO/#{@current_call.sessionId}
 agi_language: en
 agi_type: TROPO
-agi_uniqueid: #{@current_call.id}
+agi_uniqueid: #{@current_call.sessionId}
 agi_version: tropo-agi-0.1.0
 agi_callerid: #{@current_call.callerID}
 agi_calleridname: #{@current_call.callerName}
@@ -973,7 +989,7 @@ agi_callingpres: 0
 agi_callingani2: 0
 agi_callington: 0
 agi_callingtns: 0
-agi_dnid: #{@current_call.calledID}
+agi_dnid: #{@current_call.calledID.gsub(/^tel:\+/, '')}
 agi_rdnis: #{rdnis}
 agi_context: #{agi_context}
 agi_extension: #{@agi_exten}
@@ -1198,7 +1214,7 @@ MSG
   # This class emulates the Tropo callObject object for the purposes of allowing
   # Tropo-AGItate to emulate Asterisk "h" (hangup) and "failed" special calls.
   class DeadCall
-    attr_accessor :callerID, :calledID, :callerName, :id
+    attr_accessor :callerID, :calledID, :callerName, :sessionId
 
     def initialize(system, destination, info)
       require 'digest/md5'
@@ -1206,7 +1222,7 @@ MSG
       # Proxy object to the global namespace
       @system = system
       # Fake a channel ID since we don't have a real channel to provide one
-      @id         = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
+      @sessionId  = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
       @callerID   = info[:callerID]
       @calledID   = destination
       @callerName = info[:callerName] || ""

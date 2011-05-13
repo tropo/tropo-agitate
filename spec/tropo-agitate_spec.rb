@@ -47,10 +47,10 @@ describe "TropoAGItate" do
 agi_network: yes
 agi_network_script: #{agi_uri.path[1..-1]}
 agi_request: agi://#{agi_uri.host}:#{agi_uri.port}#{agi_uri.path}
-agi_channel: TROPO/#{$currentCall.id}
+agi_channel: TROPO/#{$currentCall.sessionId}
 agi_language: en
 agi_type: TROPO
-agi_uniqueid: #{$currentCall.id}
+agi_uniqueid: #{$currentCall.sessionId}
 agi_version: tropo-agi-0.1.0
 agi_callerid: #{$currentCall.callerID}
 agi_calleridname: #{$currentCall.callerName}
@@ -126,8 +126,11 @@ MSG
     command = @tropo_agitate.parse_command('GET VARIABLE "myvar"')
     command.should == { :command => "variable", :action => "get", :args => ["myvar"] }
 
-    command = @tropo_agitate.parse_command('EXEC monitor "{"method":"POST","uri":"http://localhost"}"')
-    command.should == { :command => "monitor", :action => "exec", :args => { 'method' => 'POST', 'uri' => 'http://localhost' } }
+    command = @tropo_agitate.parse_command('EXEC monitor "http://localhost"')
+    command.should == { :command => "monitor", :action => "exec", :args => [ 'http://localhost' ] }
+
+    command = @tropo_agitate.parse_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
+    command.should == { :command => "startcallrecording", :action => "exec", :args => { 'method' => 'POST', 'uri' => 'http://localhost' } }
 
     command = @tropo_agitate.parse_command('EXEC mixmonitor "{"method":"POST","uri":"http://localhost"}"')
     command.should == { :command => "mixmonitor", :action => "exec", :args => { 'method' => 'POST', 'uri' => 'http://localhost' } }
@@ -180,7 +183,7 @@ MSG
     command = @tropo_agitate.execute_command('EXEC MeetMe "1234","d",""')
     command.should == "200 result=0\n"
 
-    command = @tropo_agitate.execute_command("EXEC monitor #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
+    command = @tropo_agitate.execute_command("EXEC startcallrecording #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
     command.should == "200 result=0\n"
 
     command = @tropo_agitate.execute_command('EXEC voice "simon"')
