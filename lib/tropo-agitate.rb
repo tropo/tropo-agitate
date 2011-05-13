@@ -961,10 +961,10 @@ class TropoAGItate
 agi_network: yes
 agi_network_script: #{agi_context}
 agi_request: agi://#{agi_host}:#{agi_port}/#{agi_context}
-agi_channel: TROPO/#{@current_call.id}
+agi_channel: TROPO/#{@current_call.sessionId}
 agi_language: en
 agi_type: TROPO
-agi_uniqueid: #{@current_call.id}
+agi_uniqueid: #{@current_call.sessionId}
 agi_version: tropo-agi-0.1.0
 agi_callerid: #{@current_call.callerID}
 agi_calleridname: #{@current_call.callerName}
@@ -1197,7 +1197,7 @@ MSG
   # This class emulates the Tropo callObject object for the purposes of allowing
   # Tropo-AGItate to emulate Asterisk "h" (hangup) and "failed" special calls.
   class DeadCall
-    attr_accessor :callerID, :calledID, :callerName, :id
+    attr_accessor :callerID, :calledID, :callerName, :sessionId
 
     def initialize(system, destination, info)
       require 'digest/md5'
@@ -1205,7 +1205,7 @@ MSG
       # Proxy object to the global namespace
       @system = system
       # Fake a channel ID since we don't have a real channel to provide one
-      @id         = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
+      @sessionId  = Digest::MD5.hexdigest(self.hash.to_s + Time.now.usec.to_s)
       @callerID   = info[:callerID]
       @calledID   = destination
       @callerName = info[:callerName] || ""
