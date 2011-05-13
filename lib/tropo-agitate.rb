@@ -610,8 +610,7 @@ class TropoAGItate
     #
     # @return [String] the AGI response
     def stopcallrecording(options={})
-      check_state
-
+      # This command is permissible on a dead channel.
       @current_call.stopCallRecording
       @agi_response + "0\n"
     rescue => e
