@@ -260,18 +260,19 @@ class TropoAGItate
 
         if escape_digits.nil?
           @current_call.say prompt, :voice => @tropo_voice
-          result = @agi_response + "0 endpos=0\n"
+          result = @agi_response + "0 endpos=1000\n"
         else
           # Timeout is set to 0 so we return immediately after playback
           response = @current_call.ask prompt, { :choices    => create_choices(escape_digits),
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
           digit = response.value.nil? ? 0 : response.value[0]
-          result = @agi_response + digit.to_s + " endpos=0\n"
+          result = @agi_response + digit.to_s + " endpos=1000\n"
         end
       end
       result
     rescue => e
+      # FIXME: We should have endpos=0 if the file could not be found?
       log_error(this_method, e)
     end
     alias :streamfile :file
