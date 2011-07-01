@@ -920,10 +920,10 @@ class TropoAGItate
           @agi_client.write result
         rescue Errno::EPIPE
           show 'AGI socket closed by client.'
+          break
         rescue => e
           show "Error Class: #{e.class.inspect}"
           show "Error is: #{e}"
-        ensure
           @current_call.hangup
           break
         end
