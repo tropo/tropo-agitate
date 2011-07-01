@@ -77,7 +77,7 @@ describe "TropoAGItate::TropoCommands" do
 
   it "should return a valid string when a file is requested" do
     options = { :args => ["\"hey there!\" \"1234567890*#\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
   end
 
   it "should return a valid string when a meetme is requested" do
@@ -122,31 +122,31 @@ describe "TropoAGItate::TropoCommands" do
   
   it "should support a stream file without escape digits" do
     options = { :args => ["\"hey there!\""] }
-    @tropo_commands.file(options).should == "200 result=0 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=0 endpos=1000\n"
   end
   
   it "should support a stream file with escape digits" do
     options = { :args => ["\"hey there!\" \"1234567890#\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
     
     options = { :args => ["\"hey there!\" \"1234567890#*\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
     
     options = { :args => ["\"hey there!\" \"1234567890*\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
     
     options = { :args => ["\"hey there!\" \"1234\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
     
     options = { :args => ["\"hey there!\" \"#\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
 
     options = { :args => ["\"hey there!\" \"*\""] }
-    @tropo_commands.file(options).should == "200 result=57 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=57 endpos=1000\n"
   end
   
   it "should execute a read" do
     options = { :args => ["pin", "tt monkeys", "5", "", "3", "10"] }
-    @tropo_commands.file(options).should == "200 result=0 endpos=0\n"
+    @tropo_commands.file(options).should == "200 result=0 endpos=1000\n"
   end
 end

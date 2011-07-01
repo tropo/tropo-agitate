@@ -223,18 +223,18 @@ MSG
     command.should == "200 result=0\n"
 
     command = @tropo_agitate.execute_command('STREAM FILE "tt-monkeys" "1234567890*#"')
-    command.should == "200 result=57 endpos=0\n"
+    command.should == "200 result=57 endpos=1000\n"
   end
 
   it "should handle the STREAM FILE requests" do
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys 1234567890*#')
-    command.should == "200 result=57 endpos=0\n"
+    command.should == "200 result=57 endpos=1000\n"
 
     command = @tropo_agitate.execute_command('STREAM FILE tt-monkeys')
-    command.should == "200 result=0 endpos=0\n"
+    command.should == "200 result=0 endpos=1000\n"
 
     command = @tropo_agitate.execute_command('STREAM STREAMFILE tt-monkeys 1234567890*#')
-    command.should == "200 result=57 endpos=0\n"
+    command.should == "200 result=57 endpos=1000\n"
   end
 
   it "should return the account data from a directory lookup on Windows" do
