@@ -14,7 +14,7 @@ module Tropo
   end
 
   class TropoEvent
-    attr_accessor :name, :recordURI, :choice, :attempt
+    attr_accessor :name, :recordURI, :choice, :attempt, :value
     # @value is sometimes set to an instance of TropoCall
   end
 

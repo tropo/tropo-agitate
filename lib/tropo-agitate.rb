@@ -306,6 +306,43 @@ class TropoAGItate
     alias :streamfile :file
 
     ##
+    # Plays a file to the call and listens for DTMF input.
+    # The argument array is FILE [TIMEOUT] [MAXDIGITS]
+    #
+    # @param [Hash] :args => [Array] of arguments
+    # @return [String]
+    def get_data(options)
+      raise ArgumentError if options[:args].nil?
+      soundfile, timeout, maxdigits = options[:args].first.split /\s/
+      raise ArgumentError if soundfile.nil?
+
+      # Match Asterisk's timeout handling
+      timeout = 6000 if timeout.nil? || timeout.to_i == 0
+      # Yes, 1 million seconds.  Copied directly from Asterisk main/app.c
+      timeout = 1_000_000 if timeout.to_i < 0
+      timeout = timeout.to_i / 1000 if timeout.to_i > 0
+
+      # Yes, 1,024 digits.  Copied directly from Asterisk res/res_agi.c
+      maxdigits = 1024 if maxdigits.nil?
+
+      options = {:timeout => timeout,
+                 :choices => "[#{maxdigits} DIGITS]",
+                 :mode    => 'dtmf',
+                }
+
+      result = @current_call.ask(soundfile, options)
+      case result.name
+      when 'timeout'
+        @agi_response + " (timeout)"
+      when 'choice'
+        @agi_response + result.value
+      else
+        show "Unknown Tropo response! #{result.inspect}"
+        @agi_response + "-1"
+      end
+    end
+
+    ##
     # Grabs all of the SIP headers off of the current session/call
     # This is a work around until the $currentCall.getHeaderMap works, currently a bug in the Ruby shim
     #
@@ -1056,10 +1093,13 @@ MSG
         @commands.channel_status
       end
     when 'set', 'get'
-      if options[:command].downcase == 'variable'
+      case options[:command].downcase
+      when 'variable'
         @commands.channel_variable(options)
-      elsif options[:command].downcase == 'callerid' || options[:command].downcase == 'calleridname'
+      when 'callerid', 'calleridname'
         @commands.callerid(options)
+      when 'data'
+        @commands.get_data(options)
       end
     when 'exec', 'stream', 'channel'
       @commands.send(options[:command].downcase.to_sym, options)
