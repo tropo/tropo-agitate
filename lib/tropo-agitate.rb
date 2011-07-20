@@ -984,9 +984,12 @@ class TropoAGItate
           result = execute_command command
           @agi_client.write result
 
+        rescue ArgumentError => e
+          show "Invalid options: #{e.message}"
+          @agi_client.write "520 Invalid command syntax."
         rescue NonsenseCommand
           show "Invalid or unknown command #{data}"
-          @agi_client.write "510 result=Invalid or unknown Command\n"
+          @agi_client.write "510 Invalid or unknown Command\n"
         rescue SoftFailCommand
           show "Command does not work as expected on Tropo, returning soft fail: #{data}"
           @agi_client.write "200 result=-1\n"
