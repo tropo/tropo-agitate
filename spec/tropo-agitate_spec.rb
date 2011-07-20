@@ -121,32 +121,32 @@ MSG
 
     describe 'CONTROL STREAM' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending "Is this function possible with Tropo?"
       end
     end
 
     describe 'DATABASE DEL' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('DATABASE DEL X Y') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('DATABASE DEL X Y') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
     describe 'DATABASE DELTREE' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('DATABASE DELTREE X') }.to raise_error TropoAGItate::NonsenseCommand
-        expect { @tropo_agitate.parse_command('DATABASE DELTREE X Y') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('DATABASE DELTREE X') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('DATABASE DELTREE X Y') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
     describe 'DATABASE GET' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('DATABASE GET X Y') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('DATABASE GET X Y') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
     describe 'DATABASE PUT' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('DATABASE PUT X Y Z') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('DATABASE PUT X Y Z') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
