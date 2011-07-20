@@ -931,6 +931,13 @@ class TropoAGItate
           show "Raw string: #{command}"
           result = execute_command command
           @agi_client.write result
+
+        rescue NonsenseCommand
+          show "Invalid or unknown command #{data}"
+          @agi_client.write "510 result=Invalid or unknown Command\n"
+        rescue SoftFailCommand
+          show "Command does not work as expected on Tropo, returning soft fail: #{data}"
+          @agi_client.write "200 result=-1\n"
         rescue Errno::EPIPE
           show 'AGI socket closed by client.'
           break
@@ -1041,8 +1048,7 @@ MSG
     when 'record'
       @commands.record(options)
     else
-      show "Invalid or unknown command #{data}"
-      return "510 result=Invalid or unknown Command\n"
+      raise NonsenseCommand
     end
   end
 
