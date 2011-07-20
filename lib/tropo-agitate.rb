@@ -23,6 +23,19 @@ end
 class TropoAGItate
   attr_accessor :agi_uri, :agi_exten, :commands
 
+  
+  ##
+  # This exception is raised when an AGI command is sent that does
+  # not have any sane mapping to Tropo.  The result should be sent
+  # back as a 5XX AGI protocol error.
+  class NonsenseCommand < StandardError; end
+
+  ##
+  # This exception is raised when an AGI command is sent that does
+  # not have any real meaning to Tropo.  The result should be sent
+  # back as a "200 result=-1" indicating a problem, but not be fatal.
+  class SoftFailCommand < StandardError; end
+
   module Helpers
     ##
     # Strips the quotes from a string
