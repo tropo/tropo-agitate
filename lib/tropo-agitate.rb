@@ -163,6 +163,21 @@ class TropoAGItate
     end
 
     ##
+    # Returns the status of the currently connected channel.
+    #
+    # Hard code this to "6", which is the only answer that
+    # I think makes sense for Tropo.
+    # 6 translates to "Line is up"
+    #
+    # AGI: https://wiki.asterisk.org/wiki/display/AST/AGICommand_CHANNEL+STATUS
+    #
+    # @return [String] the response in AGI raw form
+    # @todo Add other possible results, if necessary
+    def channel_status
+      @agi_response + "6\n"
+    end
+
+    ##
     # Initiates a transfer on Tropo which corresopnds as a dial over AGI
     # AGI: http://www.voip-info.org/wiki/view/Asterisk+cmd+Dial
     # Tropo: https://www.tropo.com/docs/scripting/transfer.htm
@@ -1035,6 +1050,11 @@ MSG
     case options[:action]
     when 'answer', 'hangup'
       @commands.send(options[:action].to_sym)
+    when 'channel'
+      if options[:command].downcase == 'status'
+        raise SoftFailCommand unless options[:args].nil?
+        @commands.channel_status
+      end
     when 'set', 'get'
       if options[:command].downcase == 'variable'
         @commands.channel_variable(options)
