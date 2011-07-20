@@ -98,20 +98,24 @@ MSG
   describe 'parsing the AGI primitive' do
     describe 'ANSWER' do
       it 'should properly parse the AGI input' do
-        command = @tropo_agitate.parse_command('ANSWER')
-        command.should == { :action => "answer" }
+        flexmock($currentCall).should_receive(:answer).once.and_return true
+        @tropo_agitate.execute_command('ANSWER').should == "200 result=0\n"
       end
     end
 
     describe 'ASYNC AGI BREAK' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('ASYNC AGI BREAK') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('ASYNC AGI BREAK') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
     describe 'CHANNEL STATUS' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        @tropo_agitate.execute_command('CHANNEL STATUS').should == "200 result=6\n"
+      end
+
+      it 'should be an error if a channel name is specified' do
+        expect { @tropo_agitate.execute_command('CHANNEL STATUS Dahdi/22') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
