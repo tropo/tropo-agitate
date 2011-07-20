@@ -23,7 +23,7 @@ end
 class TropoAGItate
   attr_accessor :agi_uri, :agi_exten, :commands
 
-  
+
   ##
   # This exception is raised when an AGI command is sent that does
   # not have any sane mapping to Tropo.  The result should be sent
@@ -336,7 +336,7 @@ class TropoAGItate
     # AGI: http://www.voip-info.org/wiki/view/Asterisk+cmd+MeetMe
     # Tropo: https://www.tropo.com/docs/scripting/conference.htm
     #
-    # param [Hash] a hash of items
+    # @param [Hash] a hash of items
     # @return [String] the response in AGI raw form
     def meetme(options={})
       check_state
