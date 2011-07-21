@@ -147,3 +147,12 @@ end
 # Make these methods global.
 Object.send(:include, Tropo)
 @tropo_testing = true
+
+# Ugly hack to make the tests run faster
+class TropoAGItate
+  class Commands
+    def sleep(s)
+      true
+    end
+  end
+end
