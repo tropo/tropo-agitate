@@ -504,6 +504,10 @@ MSG
         flexmock($currentCall).should_receive(:log).once.with('Pay "Attention!"')
         @tropo_agitate.execute_command('VERBOSE "Pay \"Attention!\""').should == "200 result=1\n"
       end
+
+      it 'should raise ArgumentError if no message is given' do
+        expect { @tropo_agitate.execute_command('VERBOSE') }.to raise_error ArgumentError
+      end
     end
 
     describe 'WAIT FOR DIGIT' do

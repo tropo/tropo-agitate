@@ -778,6 +778,7 @@ class TropoAGItate
     # @param [Integer] log level (currently unused)
     # @return [String] AGI response 200 result=1
     def verbose(message, level = 0)
+      raise ArgumentError if message.nil?
       @current_call.log message
       @agi_response + "1\n"
     end
