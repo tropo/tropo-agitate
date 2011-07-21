@@ -313,9 +313,8 @@ class TropoAGItate
 
     ##
     # Plays a file to the call and listens for DTMF input.
-    # The argument array is FILE [TIMEOUT] [MAXDIGITS]
     #
-    # @param [Hash] :args => [Array] of arguments
+    # @param [Hash] :args => [Array] Single-entry array with string "FILE [TIMEOUT] [MAXDIGITS]"
     # @return [String]
     def get_data(options)
       raise ArgumentError if options[:args].nil?
@@ -344,8 +343,47 @@ class TropoAGItate
         @agi_response + result.value
       else
         show "Unknown Tropo response! #{result.inspect}"
-        @agi_response + "-1"
+        raise CommandSoftFail
       end
+    end
+
+    ##
+    # Stream file, prompt for DTMF, with timeout.
+    # NOTE: Asterisk supports specifying a list of escape digits.
+    #       When specified, only those digits in the list will interrupt
+    #       the audio.  This is not possible with Tropo, so *any* digit
+    #       pressed by the user will always interrupt playback.
+    #
+    # @param [Hash] :args => [Array] Single-entry array with string "FILE ESCAPE_DIGITS [TIMEOUT]"
+    # @return [String]
+    # @todo If possible, catch unplayable prompt errors and set endpos=0
+    def get_option(options)
+      raise ArgumentError if options[:args].nil?
+      soundfile, digits, timeout = options[:args].first.split /\s/
+      raise ArgumentError if soundfile.nil?
+
+      # Match Asterisk's timeout handling
+      timeout = 5000 if timeout.nil? || timeout.to_i == 0
+      # Yes, 1 million seconds.  Copied directly from Asterisk main/app.c
+      timeout = 0 if timeout.to_i < 0
+      timeout = timeout.to_i / 1000 if timeout.to_i > 0
+
+      options = {:timeout => timeout,
+                 :choices => "[1 DIGITS]",
+                 :mode    => 'dtmf',
+                }
+
+      result = @current_call.ask(soundfile, options)
+      case result.name
+      when 'timeout'
+        @agi_response + "0 endpos=1000\n"
+      when 'choice'
+        @agi_response + "#{result.value} endpos=1000\n"
+      else
+        show "Unknown Tropo response! #{result.inspect}"
+        raise CommandSoftFail
+      end
+
     end
 
     ##
@@ -1111,6 +1149,10 @@ MSG
         @commands.callerid(options)
       when 'data'
         @commands.get_data(options)
+      when 'option'
+        @commands.get_option(options)
+      else
+        raise NonsenseCommand
       end
     when 'exec', 'stream', 'channel'
       @commands.send(options[:command].downcase.to_sym, options)

@@ -224,8 +224,32 @@ MSG
     end
 
     describe 'GET OPTION' do
+      before :each do
+        @choice = TropoEvent.new
+        @choice.name = 'choice'
+        @choice.value = '123'
+        @choice_response = "200 result=123 endpos=1000\n"
+
+        @timeout = TropoEvent.new
+        @timeout.name = 'timeout'
+        @timeout_response = "200 result=0 endpos=1000\n"
+      end
+
       it 'should properly parse the AGI input' do
-        false.should be true
+        params = {:timeout => 3, :mode => 'dtmf', :choices => '[1 DIGITS]'}
+        flexmock($currentCall).should_receive(:ask).once.with('beep', params).and_return @choice
+        @tropo_agitate.execute_command('GET OPTION beep 01234567890#* 3000').should == @choice_response
+      end
+
+      it 'should properly handle a timeout response' do
+        params = {:timeout => 3, :mode => 'dtmf', :choices => '[1 DIGITS]'}
+        flexmock($currentCall).should_receive(:ask).once.with('beep', params).and_return @timeout
+        @tropo_agitate.execute_command('GET OPTION beep 01234567890#* 3000').should == @timeout_response
+      end
+
+      it 'should default the timeout to 5 seconds' do
+        flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:timeout => 5)).and_return @timeout
+        @tropo_agitate.execute_command('GET OPTION beep 01234567890#*').should == @timeout_response
       end
     end
 
