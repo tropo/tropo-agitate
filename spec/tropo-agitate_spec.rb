@@ -294,8 +294,53 @@ MSG
     end
 
     describe 'RECORD FILE' do
+      before :each do
+        @blank = '<speak> </speak>'
+        @params = {:recordFormat => 'audio/wav', :terminator => '1,2,3,4,5', :beep => true, :silenceTimeout => 29, :maxTime => 61, :recordURI => 'doesnt_matter'}
+      end
+
       it 'should properly parse the AGI input' do
-        false.should be true
+        flexmock($currentCall).should_receive(:record).once.with(@blank, @params).and_return TropoEvent.new
+        @tropo_agitate.execute_command('RECORD FILE doesnt_matter wav 12345 61000 0 BEEP s=29').should == "200 result=0 endpos=1000\n"
+      end
+
+      it 'must require all required inputs' do
+        expect { @tropo_agitate.execute_command('RECORD FILE blah') }.to raise_error ArgumentError
+        expect { @tropo_agitate.execute_command('RECORD FILE blah mp3') }.to raise_error ArgumentError
+	expect { @tropo_agitate.execute_command('RECORD FILE blah mp3 12345') }.to raise_error ArgumentError
+      end
+
+      it 'should properly translate the wav format' do
+        flexmock($currentCall).should_receive(:record).once.with(@blank, hsh(:recordFormat => 'audio/wav')).and_return TropoEvent.new
+        @tropo_agitate.execute_command('RECORD FILE doesnt_matter wav 12345 61000').should == "200 result=0 endpos=1000\n"
+      end
+
+      it 'should properly translate the mp3 format' do
+        flexmock($currentCall).should_receive(:record).once.with(@blank, hsh(:recordFormat => 'audio/mp3')).and_return TropoEvent.new
+        @tropo_agitate.execute_command('RECORD FILE doesnt_matter mp3 12345 61000').should == "200 result=0 endpos=1000\n"
+      end
+
+      it 'format must be only wav or mp3' do
+        expect { @tropo_agitate.execute_command('RECORD FILE doesnt_matter gsm 12345 61000') }.to raise_error ArgumentError
+      end
+
+      it 'escape digits should be separated by commas' do
+        flexmock($currentCall).should_receive(:record).once.with(@blank, hsh(:terminator => '*,1,2,3,4,5,#')).and_return TropoEvent.new
+        @tropo_agitate.execute_command('RECORD FILE doesnt_matter wav *12345# 61000').should == "200 result=0 endpos=1000\n"
+
+      end
+
+      it 'should respect the requested timeout and convert from milliseconds' do
+        flexmock($currentCall).should_receive(:record).once.with(@blank, hsh(:maxTime => 22)).and_return TropoEvent.new
+        @tropo_agitate.execute_command('RECORD FILE doesnt_matter wav *12345# 22000').should == "200 result=0 endpos=1000\n"
+      end
+
+      it 'should raise an error if OFFSET_SAMPLES is greater than 0' do
+      end
+
+      it 'should detect the silence parameter without leading optional arguments' do
+        'RECORD FILE doesnt_matter FORMAT ESCAPE_DIGITS TIMEOUT BEEP S=30'
+        'RECORD FILE doesnt_matter FORMAT ESCAPE_DIGITS TIMEOUT 0 S=30'
       end
     end
 

@@ -51,7 +51,7 @@ class TropoAGItate
     #
     # @return [String] the string with the quotes removed
     def strip_quotes(text)
-      text.sub(/^"/, '').sub(/"$/, '').gsub(/\\"/, '"')
+      text.to_s.sub(/^"/, '').sub(/"$/, '').gsub(/\\"/, '"')
     end
 
     ##
@@ -568,17 +568,25 @@ class TropoAGItate
       check_state
 
       options = options[:args][0].split
-      silence_timeout = strip_quotes(options[options.length - 1]).split('=')
-      beep = true if strip_quotes(options[5]) == 'BEEP'
+      silence_timeout = strip_quotes(options[options.length - 1]).split('=')[1]
+      beep = true if strip_quotes(options[5]) =~ /BEEP/i
+      escape_digits = strip_quotes(options[2]).split('').join(',')
+      format = strip_quotes(options[1])
+
+      raise ArgumentError if options.length < 4
+      raise ArgumentError unless format =~ /wav|mp3/
+
       options = { :recordURI      => strip_quotes(options[0]),
-                  :silenceTimeout => silence_timeout[1].to_i / 1000,
-                  :maxTime        => strip_quotes(options[3]).to_i,
-                  :recordFormat   => strip_quotes(options[1]),
-                  :terminator     => strip_quotes(options[2]),
+                  :maxTime        => strip_quotes(options[3]).to_i / 1000,
+                  :recordFormat   => "audio/#{format}",
+                  :terminator     => strip_quotes(options[2]).split('').join(','),
                   :beep           => beep }
-      ssml =
-      @current_call.record '<speak> </speak>', options
-      AGI_SUCCESS_PREFIX + "0\n"
+
+      options[:silenceTimeout] = silence_timeout.to_i unless silence_timeout.nil?
+
+      # Use a blank string for the required "text" parameter to Tropo::Call#record
+      ssml = @current_call.record '<speak> </speak>', options
+      AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
     rescue => e
       log_error(this_method, e)
     end
