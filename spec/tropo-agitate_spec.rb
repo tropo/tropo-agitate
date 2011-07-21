@@ -116,7 +116,7 @@ MSG
       end
 
       it 'should be an error if a channel name is specified' do
-        expect { @tropo_agitate.execute_command('CHANNEL STATUS Dahdi/22') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('CHANNEL STATUS Dahdi/22') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
@@ -379,13 +379,13 @@ MSG
 
     describe 'SET CONTEXT' do
       it 'should fail softly' do
-        expect { @tropo_agitate.execute_command('SET CONTEXT foobar') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SET CONTEXT foobar') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
     describe 'SET EXTENSION' do
       it 'should fail softly' do
-        expect { @tropo_agitate.execute_command('SET EXTENSION 1') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SET EXTENSION 1') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
@@ -403,7 +403,7 @@ MSG
 
     describe 'SET PRIORITY' do
       it 'should fail softly' do
-        expect { @tropo_agitate.execute_command('SET PRIORITY 1') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SET PRIORITY 1') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
@@ -423,7 +423,7 @@ MSG
     describe 'SPEECH CREATE ENGINE' do
       it 'should fail softly' do
         # Tropo only has one engine
-        expect { @tropo_agitate.execute_command('SPEECH CREATE example_engine') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SPEECH CREATE example_engine') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
@@ -436,7 +436,7 @@ MSG
     describe 'SPEECH DESTROY' do
       it 'should fail softly' do
         # Tropo only has one engine
-        expect { @tropo_agitate.execute_command('SPEECH DESTROY') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SPEECH DESTROY') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
@@ -455,7 +455,7 @@ MSG
     describe 'SPEECH SET' do
       it 'should fail softly' do
         # Tropo only has one engine
-        expect { @tropo_agitate.execute_command('SPEECH SET foo bar') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SPEECH SET foo bar') }.to raise_error TropoAGItate::CommandSoftFail
       end
     end
 
