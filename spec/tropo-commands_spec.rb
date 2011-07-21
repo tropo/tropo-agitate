@@ -87,7 +87,7 @@ describe "TropoAGItate::TropoCommands" do
 
   it "should return a valid string when we request a record" do
     options ={ :args => ['"http://tropo-audiofiles-to-s3.heroku.com/post_audio_to_s3?filename=voicemail" "mp3" "#" "120000" "0" "BEEP" "s=5"'] }
-    @tropo_commands.record(options).should == "200 result=0\n"
+    @tropo_commands.record(options).should == "200 result=0 endpos=1000\n"
   end
 
   it "should return a valid string when we reqeust a monitor/mixmonitor" do
