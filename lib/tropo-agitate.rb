@@ -26,7 +26,7 @@ class TropoAGItate
 
   ##
   # This exception is raised when an AGI command is sent that does
-  # not have any sane mapping to Tropo.  The result should be sent
+  # not have any sane mapping to Tropo.  The result will be sent
   # back as a 5XX AGI protocol error.
   class NonsenseCommand < StandardError; end
 
@@ -34,7 +34,13 @@ class TropoAGItate
   # This exception is raised when an AGI command is sent that does
   # not have any real meaning to Tropo.  The result should be sent
   # back as a "200 result=-1" indicating a problem, but not be fatal.
-  class SoftFailCommand < StandardError; end
+  class CommandSoftFail < StandardError; end
+
+  ##
+  # This exception is raised when a command runs that must have an
+  # active channel.  It results in a
+  # "511 Command Not Permitted on a dead channel" being sent to AGI.
+  class DeadChannelError < StandardError; end
 
   module Helpers
     ##
@@ -795,7 +801,7 @@ class TropoAGItate
     def check_state
       case @current_call.state
       when 'DISCONNECTED'
-        raise RuntimeError, '511 result=Command Not Permitted on a dead channel'
+        raise DeadChannelError
       when 'RINGING'
         @current_call.answer
         # Sleep to allow audio to settle, in the case of Skype
@@ -889,11 +895,11 @@ class TropoAGItate
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
 
       # Return an error based on the error encountered
-      case error.to_s
-      when '511 result=Command Not Permitted on a dead channel'
-        error.to_s + "\n"
+      case error
+      when DeadChannelError
+        raise
       else
-        @agi_response + "-1\n"
+        raise CommandSoftFail
       end
     end
 
@@ -990,7 +996,9 @@ class TropoAGItate
         rescue NonsenseCommand
           show "Invalid or unknown command #{data}"
           @agi_client.write "510 Invalid or unknown Command\n"
-        rescue SoftFailCommand
+        rescue DeadChannelError
+          @agi_client.write '511 Command Not Permitted on a dead channel'
+        rescue CommandSoftFail
           show "Command does not work as expected on Tropo, returning soft fail: #{data}"
           @agi_client.write "200 result=-1\n"
         rescue Errno::EPIPE
@@ -1092,7 +1100,7 @@ MSG
       @commands.send(options[:action].to_sym)
     when 'channel'
       if options[:command].downcase == 'status'
-        raise SoftFailCommand unless options[:args].nil?
+        raise CommandSoftFail unless options[:args].nil?
         @commands.channel_status
       end
     when 'set', 'get'
