@@ -177,34 +177,41 @@ MSG
         @choice = TropoEvent.new
         @choice.name = 'choice'
         @choice.value = '123'
+        @choice_response = "200 result=123\n"
 
         @timeout = TropoEvent.new
         @timeout.name = 'timeout'
+        @timeout_response = "200 result= (timeout)\n"
       end
       it 'should properly parse the AGI input' do
         params = {:timeout => 5, :choices => '[4 DIGITS]', :mode => 'dtmf'}
         flexmock($currentCall).should_receive(:ask).once.with('beep', params).and_return @choice
-        @tropo_agitate.execute_command('GET DATA beep 5000 4')
+        @tropo_agitate.execute_command('GET DATA beep 5000 4').should == @choice_response
+      end
+
+      it 'should properly signal a timeout condition' do
+        flexmock($currentCall).should_receive(:ask).once.and_return @timeout
+        @tropo_agitate.execute_command('GET DATA beep 5000 4').should == @timeout_response
       end
 
       it 'should only accept DTMF input' do
         flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:mode => 'dtmf')).and_return @choice
-        @tropo_agitate.execute_command('GET DATA beep')
+        @tropo_agitate.execute_command('GET DATA beep').should == @choice_response
       end
 
       it 'should default the timeout to 6 seconds' do
         flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:timeout => 6)).and_return @choice
-        @tropo_agitate.execute_command('GET DATA beep')
+        @tropo_agitate.execute_command('GET DATA beep').should == @choice_response
       end
 
       it 'should handle a negative timeout' do
         flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:timeout => 1000)).and_return @choice
-        @tropo_agitate.execute_command('GET DATA beep -1')
+        @tropo_agitate.execute_command('GET DATA beep -1').should == @choice_response
       end
 
       it 'should default the maximum digits collected to 1024' do
         flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:choices => '[1024 DIGITS]')).and_return @choice
-        @tropo_agitate.execute_command('GET DATA beep')
+        @tropo_agitate.execute_command('GET DATA beep').should == @choice_response
       end
     end
 
