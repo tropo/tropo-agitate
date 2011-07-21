@@ -496,7 +496,13 @@ MSG
 
     describe 'VERBOSE' do
       it 'should write a message to the Tropo Application Debugger' do
-        false.should be true
+        flexmock($currentCall).should_receive(:log).once.with('Pay Attention!')
+        @tropo_agitate.execute_command('VERBOSE "Pay Attention!"').should == "200 result=1\n"
+      end
+
+      it 'should handle escaped double-quotes in log messages' do
+        flexmock($currentCall).should_receive(:log).once.with('Pay "Attention!"')
+        @tropo_agitate.execute_command('VERBOSE "Pay \"Attention!\""').should == "200 result=1\n"
       end
     end
 

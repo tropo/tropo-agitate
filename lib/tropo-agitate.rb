@@ -50,7 +50,7 @@ class TropoAGItate
     #
     # @return [String] the string with the quotes removed
     def strip_quotes(text)
-      text.sub(/^"/, '').sub(/"$/, '')
+      text.sub(/^"/, '').sub(/"$/, '').gsub(/\\"/, '"')
     end
 
     ##
@@ -338,9 +338,9 @@ class TropoAGItate
       result = @current_call.ask(soundfile, options)
       case result.name
       when 'timeout'
-        @agi_response + " (timeout)"
+        @agi_response + " (timeout)\n"
       when 'choice'
-        @agi_response + result.value
+        @agi_response + "#{result.value}\n"
       else
         show "Unknown Tropo response! #{result.inspect}"
         raise CommandSoftFail
@@ -760,7 +760,7 @@ class TropoAGItate
       when 'get'
         varname = strip_quotes(options[:args][0].to_s)
         if @chanvars[varname]
-          @agi_response + '1 (' + @chanvars[varname].to_s + ")\n"
+          @agi_response + "1 (#{@chanvars[varname].to_s})\n"
         else
           # Variable has not been set
           @agi_response + "0\n"
@@ -768,6 +768,18 @@ class TropoAGItate
       end
     rescue => e
       log_error(this_method, e)
+    end
+
+    ##
+    # Write a log to the Tropo Application Debugger
+    #
+    # AGI: https://wiki.asterisk.org/wiki/display/AST/AGICommand_VERBOSE
+    # @param [String] message to be logged
+    # @param [Integer] log level (currently unused)
+    # @return [String] AGI response 200 result=1
+    def verbose(message, level = 0)
+      @current_call.log message
+      @agi_response + "1\n"
     end
 
     ##
@@ -1160,6 +1172,8 @@ MSG
       @commands.wait_for_digits(options)
     when 'record'
       @commands.record(options)
+    when 'verbose'
+      @commands.verbose *options[:args]
     else
       raise NonsenseCommand
     end
