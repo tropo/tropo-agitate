@@ -1154,6 +1154,8 @@ MSG
         raise CommandSoftFail unless options[:args].nil?
         @commands.channel_status
       end
+    when 'exec', 'stream', 'channel'
+      @commands.send(options[:command].downcase.to_sym, options)
     when 'set', 'get'
       case options[:command].downcase
       when 'variable'
@@ -1167,14 +1169,21 @@ MSG
       else
         raise NonsenseCommand
       end
-    when 'exec', 'stream', 'channel'
-      @commands.send(options[:command].downcase.to_sym, options)
-    when 'wait'
-      @commands.wait_for_digits(options)
     when 'record'
       @commands.record(options)
+    when 'speech'
+      case options[:command]
+      when 'set', 'create', 'destroy'
+        # These do not make sense on Tropo, but should not be fatal
+        raise CommandSoftFail
+      else
+        # TODO: Map AGI SPEECH primitives to Tropo
+        raise NonsenseCommand
+      end
     when 'verbose'
       @commands.verbose *options[:args]
+    when 'wait'
+      @commands.wait_for_digits(options)
     else
       raise NonsenseCommand
     end
