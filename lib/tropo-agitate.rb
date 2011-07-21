@@ -953,13 +953,7 @@ class TropoAGItate
       show "******************************** END TRACE ********************************"
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
 
-      # Return an error based on the error encountered
-      case error
-      when DeadChannelError
-        raise
-      else
-        raise CommandSoftFail
-      end
+      raise error
     end
 
     ##
