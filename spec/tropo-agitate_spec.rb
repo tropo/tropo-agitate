@@ -219,7 +219,7 @@ MSG
       it 'should be an error' do
         # Implementing this would require implementing a parser for Asterisk's variable expansion logic.
         # NOT going to happen.
-        expect { @tropo_agitate.parse_command('GET FULL VARIABLE FOO') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('GET FULL VARIABLE FOO') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
@@ -262,8 +262,8 @@ MSG
 
     describe 'GOSUB' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('GOSUB testcontext 1 1') }.to raise_error TropoAGItate::NonsenseCommand
-        expect { @tropo_agitate.parse_command('GOSUB testcontext 1 1 blah') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('GOSUB testcontext 1 1') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('GOSUB testcontext 1 1 blah') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
@@ -282,13 +282,13 @@ MSG
 
     describe 'RECEIVE CHAR' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('RECEIVE CHAR 5000') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('RECEIVE CHAR 5000') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
     describe 'RECEIVE TEXT' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('RECEIVE TEXT 5000') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('RECEIVE TEXT 5000') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
@@ -342,13 +342,13 @@ MSG
 
     describe 'SEND IMAGE' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('SEND IMAGE foobar.jpg') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('SEND IMAGE foobar.jpg') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
     describe 'SEND TEXT' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('SEND TEXT TEXT blah_blah_blah') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('SEND TEXT TEXT blah_blah_blah') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
@@ -379,13 +379,13 @@ MSG
 
     describe 'SET CONTEXT' do
       it 'should fail softly' do
-        expect { @tropo_agitate.parse_command('SET CONTEXT foobar') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SET CONTEXT foobar') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
     describe 'SET EXTENSION' do
       it 'should fail softly' do
-        expect { @tropo_agitate.parse_command('SET EXTENSION 1') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SET EXTENSION 1') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
@@ -403,7 +403,7 @@ MSG
 
     describe 'SET PRIORITY' do
       it 'should fail softly' do
-        expect { @tropo_agitate.parse_command('SET PRIORITY 1') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SET PRIORITY 1') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
@@ -423,7 +423,7 @@ MSG
     describe 'SPEECH CREATE ENGINE' do
       it 'should fail softly' do
         # Tropo only has one engine
-        expect { @tropo_agitate.parse_command('SPEECH CREATE example_engine') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SPEECH CREATE example_engine') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
@@ -436,7 +436,7 @@ MSG
     describe 'SPEECH DESTROY' do
       it 'should fail softly' do
         # Tropo only has one engine
-        expect { @tropo_agitate.parse_command('SPEECH DESTROY') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SPEECH DESTROY') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
@@ -455,7 +455,7 @@ MSG
     describe 'SPEECH SET' do
       it 'should fail softly' do
         # Tropo only has one engine
-        expect { @tropo_agitate.parse_command('SPEECH SET foo bar') }.to raise_error TropoAGItate::SoftFailCommand
+        expect { @tropo_agitate.execute_command('SPEECH SET foo bar') }.to raise_error TropoAGItate::SoftFailCommand
       end
     end
 
@@ -489,8 +489,8 @@ MSG
 
     describe 'TDD MODE' do
       it 'should be an error' do
-        expect { @tropo_agitate.parse_command('TDD MODE on') }.to raise_error TropoAGItate::NonsenseCommand
-        expect { @tropo_agitate.parse_command('TDD MODE off') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('TDD MODE on') }.to raise_error TropoAGItate::NonsenseCommand
+        expect { @tropo_agitate.execute_command('TDD MODE off') }.to raise_error TropoAGItate::NonsenseCommand
       end
     end
 
