@@ -276,7 +276,8 @@ MSG
 
     describe 'NOOP' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        @tropo_agitate.execute_command('NOOP').should == "200 result=0\n"
+        @tropo_agitate.execute_command('NOOP blah blah blah blah').should == "200 result=0\n"
       end
     end
 

@@ -1169,6 +1169,8 @@ MSG
       else
         raise NonsenseCommand
       end
+    when 'noop'
+      @agi_response + "0"
     when 'record'
       @commands.record(options)
     when 'speech'
