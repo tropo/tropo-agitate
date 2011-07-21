@@ -23,6 +23,7 @@ end
 class TropoAGItate
   attr_accessor :agi_uri, :agi_exten, :commands
 
+  AGI_SUCCESS_PREFIX="200 result="
 
   ##
   # This exception is raised when an AGI command is sent that does
@@ -89,7 +90,6 @@ class TropoAGItate
     def initialize(current_call, tropo_agi_config)
       @current_call     = current_call
       @tropo_agi_config = tropo_agi_config
-      @agi_response     = "200 result="
       @tropo_voice      = @tropo_agi_config['tropo']['voice']
       @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
 
@@ -115,7 +115,7 @@ class TropoAGItate
       else
         show "Warning - invalid call state to invoke an answer: #{@current_call.state.inspect}"
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -150,7 +150,7 @@ class TropoAGItate
                    :interpretation => response.choice.interpretation,
                    :tag            => response.choice.tag }
       end
-      @agi_response + result.to_json + "\n"
+      AGI_SUCCESS_PREFIX + result.to_json + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -163,7 +163,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def callerid(options={})
       @chanvars['CALLERID'] = options[:args][0]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -180,7 +180,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     # @todo Add other possible results, if necessary
     def channel_status
-      @agi_response + "6\n"
+      AGI_SUCCESS_PREFIX + "6\n"
     end
 
     ##
@@ -219,7 +219,7 @@ class TropoAGItate
       when 'callFailure' then 'CHANUNAVAIL'
       else 'CONGESTION'
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -258,7 +258,7 @@ class TropoAGItate
           @chanvars['AMDSTATUS'] = 'MACHINE'
           @chanvars['AMDCAUSE']  = "TOOLONG-#{difference.to_s}"
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -294,14 +294,14 @@ class TropoAGItate
 
         if escape_digits.nil?
           @current_call.say prompt, :voice => @tropo_voice
-          result = @agi_response + "0 endpos=1000\n"
+          result = AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
         else
           # Timeout is set to 0 so we return immediately after playback
           response = @current_call.ask prompt, { :choices    => create_choices(escape_digits),
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
           digit = response.value.nil? ? 0 : response.value[0]
-          result = @agi_response + digit.to_s + " endpos=1000\n"
+          result = AGI_SUCCESS_PREFIX + digit.to_s + " endpos=1000\n"
         end
       end
       result
@@ -338,9 +338,9 @@ class TropoAGItate
       result = @current_call.ask(soundfile, options)
       case result.name
       when 'timeout'
-        @agi_response + " (timeout)\n"
+        AGI_SUCCESS_PREFIX + " (timeout)\n"
       when 'choice'
-        @agi_response + "#{result.value}\n"
+        AGI_SUCCESS_PREFIX + "#{result.value}\n"
       else
         show "Unknown Tropo response! #{result.inspect}"
         raise CommandSoftFail
@@ -376,9 +376,9 @@ class TropoAGItate
       result = @current_call.ask(soundfile, options)
       case result.name
       when 'timeout'
-        @agi_response + "0 endpos=1000\n"
+        AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
       when 'choice'
-        @agi_response + "#{result.value} endpos=1000\n"
+        AGI_SUCCESS_PREFIX + "#{result.value} endpos=1000\n"
       else
         show "Unknown Tropo response! #{result.inspect}"
         raise CommandSoftFail
@@ -407,7 +407,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def hangup
       @current_call.hangup
-      @agi_response + "1\n"
+      AGI_SUCCESS_PREFIX + "1\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -424,7 +424,7 @@ class TropoAGItate
 
       options = options[:args][0].split('|')
       @current_call.conference options[0].chop
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -454,7 +454,7 @@ class TropoAGItate
     def monitor(options={})
       check_state
       @current_call.startCallRecording options[:args].first
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -470,7 +470,7 @@ class TropoAGItate
     def startcallrecording(options={})
       check_state
       @current_call.startCallRecording options[:args].delete('uri'), options[:args]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -493,7 +493,7 @@ class TropoAGItate
         text = options[:args][0]
       end
       @current_call.say text, :voice => @tropo_voice
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -538,7 +538,7 @@ class TropoAGItate
 
       # Set the variable the user has specified for the value to insert into
       @chanvars[options[:args][0]] = response.value
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     end
 
     ##
@@ -553,7 +553,7 @@ class TropoAGItate
       else
         @tropo_recognizer = options[:args][0]
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     end
 
     ##
@@ -578,7 +578,7 @@ class TropoAGItate
                   :beep           => beep }
       ssml =
       @current_call.record '<speak> </speak>', options
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -592,7 +592,7 @@ class TropoAGItate
       check_state
 
       @current_call.redirect options[:args][0]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -604,7 +604,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def reject
       @current_call.reject
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -620,7 +620,7 @@ class TropoAGItate
       check_state
 
       @current_call.say options[:args]['prompt'], options[:args]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -637,7 +637,7 @@ class TropoAGItate
 
       ssml = "<speak><say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as></speak>"
       @current_call.say ssml, :voice => @tropo_voice
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -658,7 +658,7 @@ class TropoAGItate
         text = text + char + ' '
       end
       @current_call.say text, :voice => TROPO_VOICE
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -676,7 +676,7 @@ class TropoAGItate
     def saytime(options={})
       check_state
 
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -703,7 +703,7 @@ class TropoAGItate
           show "Cannot play DTMF with: #{char.inspect}"
         end
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -722,7 +722,7 @@ class TropoAGItate
       else
         status = 0
       end
-      @agi_response + status.to_s + "\n"
+      AGI_SUCCESS_PREFIX + status.to_s + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -735,7 +735,7 @@ class TropoAGItate
     def stopcallrecording(options={})
       # This command is permissible on a dead channel.
       @current_call.stopCallRecording
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -756,14 +756,14 @@ class TropoAGItate
       when 'set'
         key_value = options[:args][0].split(' ', 2)
         @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
-        @agi_response + "0\n"
+        AGI_SUCCESS_PREFIX + "0\n"
       when 'get'
         varname = strip_quotes(options[:args][0].to_s)
         if @chanvars[varname]
-          @agi_response + "1 (#{@chanvars[varname].to_s})\n"
+          AGI_SUCCESS_PREFIX + "1 (#{@chanvars[varname].to_s})\n"
         else
           # Variable has not been set
-          @agi_response + "0\n"
+          AGI_SUCCESS_PREFIX + "0\n"
         end
       end
     rescue => e
@@ -780,7 +780,7 @@ class TropoAGItate
     def verbose(message, level = 0)
       raise ArgumentError if message.nil?
       @current_call.log message
-      @agi_response + "1\n"
+      AGI_SUCCESS_PREFIX + "1\n"
     end
 
     ##
@@ -795,7 +795,7 @@ class TropoAGItate
       else
         @tropo_voice = options[:args][0]
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     end
 
     ##
@@ -805,7 +805,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def wait(options={})
       @current_call.wait options[:args][0].to_i * 1000
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -832,7 +832,7 @@ class TropoAGItate
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
       digit = response.value.nil? ? 0 : response.value[0]
-      @agi_response + digit.to_s + "\n"
+      AGI_SUCCESS_PREFIX + digit.to_s + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -1170,7 +1170,7 @@ MSG
         raise NonsenseCommand
       end
     when 'noop'
-      @agi_response + "0"
+      AGI_SUCCESS_PREFIX + "0\n"
     when 'record'
       @commands.record(options)
     when 'speech'
