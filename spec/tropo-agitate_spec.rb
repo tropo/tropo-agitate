@@ -393,12 +393,12 @@ MSG
     describe 'SET MUSIC' do
       it 'should turn music ON' do
         # SET MUSIC ON http://...
-        false.should be true
+        pending "Is background MOH possible with Tropo"
       end
 
       it 'should turn music OFF' do
         # SET MUSIC OFF
-        false.should be true
+        pending "Is background MOH possible with Tropo"
       end
     end
 
