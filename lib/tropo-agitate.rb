@@ -1166,6 +1166,8 @@ MSG
         @commands.get_data(options)
       when 'option'
         @commands.get_option(options)
+      when 'context', 'extension', 'priority'
+        raise CommandSoftFail
       else
         raise NonsenseCommand
       end
