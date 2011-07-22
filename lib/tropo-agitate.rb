@@ -191,9 +191,9 @@ class TropoAGItate
     # @param [Hash] the options used to place the dial
     #
     # @return [String] the response in AGI raw form
-    def dial(options={})
+    def dial(args=[])
       check_state
-      args = options.delete(:args) || {}
+
       destinations = parse_destinations(args.shift.split('&'))
       options = {}
 
@@ -232,7 +232,7 @@ class TropoAGItate
     # @param [Hash] the options used to place the dial
     #
     # @return [String] the response in AGI raw form
-    def amd(options={})
+    def amd(*args)
       check_state
 
       # TODO: It is not currently possible to do the in-depth analysis on Tropo
@@ -282,12 +282,13 @@ class TropoAGItate
     # @param [Hash] the options used to play the file back
     #
     # @return [String] the response in AGI raw form
-    def file(options={})
+    def file(args=[])
       check_state
 
-      @wait_for_digits_options = parse_input_string options[:args][0], 16
-      if @wait_for_digits_options.nil?
-        prompt, escape_digits = extract_prompt_and_escape_digits(options[:args][0])
+      options = JSON.parse args.first rescue nil
+      #FIXME: JSON options are not used?
+      if options.nil?
+        prompt, escape_digits = args.shift, args.shift
 
         asterisk_sound_url = fetch_asterisk_sound(prompt)
         prompt = asterisk_sound_url if asterisk_sound_url
@@ -318,7 +319,7 @@ class TropoAGItate
     # @return [String]
     def get_data(options)
       raise ArgumentError if options[:args].nil?
-      soundfile, timeout, maxdigits = options[:args].first.split /\s/
+      soundfile, timeout, maxdigits = options[:args]
       raise ArgumentError if soundfile.nil?
 
       # Match Asterisk's timeout handling
@@ -359,7 +360,7 @@ class TropoAGItate
     # @todo If possible, catch unplayable prompt errors and set endpos=0
     def get_option(options)
       raise ArgumentError if options[:args].nil?
-      soundfile, digits, timeout = options[:args].first.split /\s/
+      soundfile, digits, timeout = options[:args]
       raise ArgumentError if soundfile.nil?
 
       # Match Asterisk's timeout handling
@@ -419,11 +420,10 @@ class TropoAGItate
     #
     # @param [Hash] a hash of items
     # @return [String] the response in AGI raw form
-    def meetme(options={})
+    def meetme(args=[])
       check_state
 
-      options = options[:args][0].split('|')
-      @current_call.conference options[0].chop
+      @current_call.conference args.shift
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -451,9 +451,9 @@ class TropoAGItate
     # @param [Hash] options used to build the startCallRecording
     #
     # @return [String] the response in AGI raw form
-    def monitor(options={})
+    def monitor(url)
       check_state
-      @current_call.startCallRecording options[:args].first
+      @current_call.startCallRecording url
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -469,7 +469,8 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def startcallrecording(options={})
       check_state
-      @current_call.startCallRecording options[:args].delete('uri'), options[:args]
+
+      @current_call.startCallRecording options.delete('uri'), options
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -483,16 +484,12 @@ class TropoAGItate
     # @param [Hash] the options used for the Tropo say method
     #
     # @return [String] the response in AGI raw form
-    def playback(options={})
+    def playback(prompt)
       check_state
 
-      asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
-      if asterisk_sound_url
-        text = asterisk_sound_url
-      else
-        text = options[:args][0]
-      end
-      @current_call.say text, :voice => @tropo_voice
+      asterisk_sound_url = fetch_asterisk_sound(prompt)
+      prompt = asterisk_sound_url if asterisk_sound_url
+      @current_call.say prompt, :voice => @tropo_voice
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -508,24 +505,21 @@ class TropoAGItate
     # @param [Hash] the options used for the Tropo ask method
     #
     # @return [String] the response in the AGI raw form
-    def read(options={})
+    def read(args=[])
       check_state
-
-      # Check to see if the READ arguments were sent in quotes, like from Asterisk-Java
-      options[:args] = options[:args][0].split(',', -4) if options[:args].length == 1
 
       # Set defaults
       prompt, choices, attempts, timeout = 'silence', '[1-255 DIGITS]', 1, 30
 
       # Set the prompt
-      prompt = options[:args][1]  if options[:args][1] != ""
+      prompt = args[1]  if !args[1].empty?
       asterisk_sound_url = fetch_asterisk_sound(prompt)
       prompt = asterisk_sound_url if asterisk_sound_url
 
       # Set other values if provided
-      choices = "[1-#{options[:args][2]} DIGITS]" unless options[:args][2].nil? || options[:args][2].empty?
-      attempts = options[:args][4] unless options[:args][4].nil? || options[:args][4].empty?
-      timeout = options[:args][5].to_f unless options[:args][5].nil? || options[:args][5].empty?
+      choices  = "[1-#{args[2]} DIGITS]" unless args[2].nil? || args[2].empty?
+      attempts = args[4]                 unless args[4].nil? || args[4].empty?
+      timeout  = args[5].to_f            unless args[5].nil? || args[5].empty?
 
       response = nil
       attempts.to_i.times do
@@ -537,7 +531,7 @@ class TropoAGItate
       end
 
       # Set the variable the user has specified for the value to insert into
-      @chanvars[options[:args][0]] = response.value
+      @chanvars[args[0]] = response.value
       AGI_SUCCESS_PREFIX + "0\n"
     end
 
@@ -547,11 +541,11 @@ class TropoAGItate
     # @param [Hash] options used set the recognizer
     #
     # @return [String] the response in AGI raw form
-    def recognizer(options={})
-      if options[:args][0] == 'default'
+    def recognizer(options=[])
+      if options[0] == 'default'
         @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
       else
-        @tropo_recognizer = options[:args][0]
+        @tropo_recognizer = options[0]
       end
       AGI_SUCCESS_PREFIX + "0\n"
     end
@@ -762,11 +756,11 @@ class TropoAGItate
     def channel_variable(options={})
       case options[:action]
       when 'set'
-        key_value = options[:args][0].split(' ', 2)
-        @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
+        var, value = options[:args]
+        @chanvars[var] = value
         AGI_SUCCESS_PREFIX + "0\n"
       when 'get'
-        varname = strip_quotes(options[:args][0].to_s)
+        varname = options[:args][0].to_s
         if @chanvars[varname]
           AGI_SUCCESS_PREFIX + "1 (#{@chanvars[varname].to_s})\n"
         else
@@ -797,11 +791,11 @@ class TropoAGItate
     # @param [Hash] options used set the voice
     #
     # @return [String] the response in AGI raw form
-    def voice(options={})
-      if options[:args][0] == 'default'
+    def voice(options=[])
+      if options[0] == 'default'
         @tropo_voice = @tropo_agi_config['tropo']['voice']
       else
-        @tropo_voice = options[:args][0]
+        @tropo_voice = options[0]
       end
       AGI_SUCCESS_PREFIX + "0\n"
     end
@@ -830,7 +824,7 @@ class TropoAGItate
       check_state
 
       if @wait_for_digits_options.nil?
-        timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
+        timeout = options[:args][1].to_i
         timeout = 1000 if timeout == -1
         timeout = timeout / 1000
         response = @current_call.ask('', { :timeout    => timeout,
@@ -905,7 +899,6 @@ class TropoAGItate
     #
     # @return [String] the URL to play the file from if the filename exists
     def fetch_asterisk_sound(text)
-      text = strip_quotes text
       if @tropo_agi_config['asterisk']['sounds']['enabled']
         if @asterisk_sound_files[text]
           return @tropo_agi_config['asterisk']['sounds']['base_uri'] + '/' +
@@ -1153,11 +1146,13 @@ MSG
       @commands.send(options[:action].to_sym)
     when 'channel'
       if options[:command].downcase == 'status'
-        raise CommandSoftFail unless options[:args].nil?
+        raise CommandSoftFail unless options[:args].empty?
         @commands.channel_status
       end
-    when 'exec', 'stream', 'channel'
-      @commands.send(options[:command].downcase.to_sym, options)
+    when 'exec'
+      @commands.send(options[:command].downcase.to_sym, options[:args])
+    when 'stream', 'channel'
+      @commands.send(options[:command].downcase.to_sym, options[:args])
     when 'set', 'get'
       case options[:command].downcase
       when 'variable'
@@ -1176,7 +1171,7 @@ MSG
     when 'noop'
       AGI_SUCCESS_PREFIX + "0\n"
     when 'record'
-      @commands.record(options)
+      @commands.agi_record(options)
     when 'speech'
       case options[:command]
       when 'set', 'create', 'destroy'
