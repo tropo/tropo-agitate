@@ -23,6 +23,26 @@ end
 class TropoAGItate
   attr_accessor :agi_uri, :agi_exten, :commands
 
+  AGI_SUCCESS_PREFIX="200 result="
+
+  ##
+  # This exception is raised when an AGI command is sent that does
+  # not have any sane mapping to Tropo.  The result will be sent
+  # back as a 5XX AGI protocol error.
+  class NonsenseCommand < StandardError; end
+
+  ##
+  # This exception is raised when an AGI command is sent that does
+  # not have any real meaning to Tropo.  The result should be sent
+  # back as a "200 result=-1" indicating a problem, but not be fatal.
+  class CommandSoftFail < StandardError; end
+
+  ##
+  # This exception is raised when a command runs that must have an
+  # active channel.  It results in a
+  # "511 Command Not Permitted on a dead channel" being sent to AGI.
+  class DeadChannelError < StandardError; end
+
   module Helpers
     ##
     # Strips the quotes from a string
@@ -31,7 +51,7 @@ class TropoAGItate
     #
     # @return [String] the string with the quotes removed
     def strip_quotes(text)
-      text.sub(/^"/, '').sub(/"$/, '')
+      text.to_s.sub(/^"/, '').sub(/"$/, '').gsub(/\\"/, '"')
     end
 
     ##
@@ -70,7 +90,6 @@ class TropoAGItate
     def initialize(current_call, tropo_agi_config)
       @current_call     = current_call
       @tropo_agi_config = tropo_agi_config
-      @agi_response     = "200 result="
       @tropo_voice      = @tropo_agi_config['tropo']['voice']
       @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
 
@@ -96,7 +115,7 @@ class TropoAGItate
       else
         show "Warning - invalid call state to invoke an answer: #{@current_call.state.inspect}"
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -131,7 +150,7 @@ class TropoAGItate
                    :interpretation => response.choice.interpretation,
                    :tag            => response.choice.tag }
       end
-      @agi_response + result.to_json + "\n"
+      AGI_SUCCESS_PREFIX + result.to_json + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -144,9 +163,24 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def callerid(options={})
       @chanvars['CALLERID'] = options[:args][0]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
+    end
+
+    ##
+    # Returns the status of the currently connected channel.
+    #
+    # Hard code this to "6", which is the only answer that
+    # I think makes sense for Tropo.
+    # 6 translates to "Line is up"
+    #
+    # AGI: https://wiki.asterisk.org/wiki/display/AST/AGICommand_CHANNEL+STATUS
+    #
+    # @return [String] the response in AGI raw form
+    # @todo Add other possible results, if necessary
+    def channel_status
+      AGI_SUCCESS_PREFIX + "6\n"
     end
 
     ##
@@ -157,9 +191,9 @@ class TropoAGItate
     # @param [Hash] the options used to place the dial
     #
     # @return [String] the response in AGI raw form
-    def dial(options={})
+    def dial(args=[])
       check_state
-      args = options.delete(:args) || {}
+
       destinations = parse_destinations(args.shift.split('&'))
       options = {}
 
@@ -185,7 +219,7 @@ class TropoAGItate
       when 'callFailure' then 'CHANUNAVAIL'
       else 'CONGESTION'
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -198,7 +232,7 @@ class TropoAGItate
     # @param [Hash] the options used to place the dial
     #
     # @return [String] the response in AGI raw form
-    def amd(options={})
+    def amd(*args)
       check_state
 
       # TODO: It is not currently possible to do the in-depth analysis on Tropo
@@ -224,7 +258,7 @@ class TropoAGItate
           @chanvars['AMDSTATUS'] = 'MACHINE'
           @chanvars['AMDCAUSE']  = "TOOLONG-#{difference.to_s}"
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -248,26 +282,27 @@ class TropoAGItate
     # @param [Hash] the options used to play the file back
     #
     # @return [String] the response in AGI raw form
-    def file(options={})
+    def file(args=[])
       check_state
 
-      @wait_for_digits_options = parse_input_string options[:args][0], 16
-      if @wait_for_digits_options.nil?
-        prompt, escape_digits = extract_prompt_and_escape_digits(options[:args][0])
+      options = JSON.parse args.first rescue nil
+      #FIXME: JSON options are not used?
+      if options.nil?
+        prompt, escape_digits = args.shift, args.shift
 
         asterisk_sound_url = fetch_asterisk_sound(prompt)
         prompt = asterisk_sound_url if asterisk_sound_url
 
         if escape_digits.nil?
           @current_call.say prompt, :voice => @tropo_voice
-          result = @agi_response + "0 endpos=1000\n"
+          result = AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
         else
           # Timeout is set to 0 so we return immediately after playback
-          response = @current_call.ask prompt, { :choices    => create_choices(escape_digits),
+          response = @current_call.ask prompt, { :choices    => format_escape_digits(escape_digits),
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
           digit = response.value.nil? ? 0 : response.value[0]
-          result = @agi_response + digit.to_s + " endpos=1000\n"
+          result = AGI_SUCCESS_PREFIX + digit.to_s + " endpos=1000\n"
         end
       end
       result
@@ -276,6 +311,81 @@ class TropoAGItate
       log_error(this_method, e)
     end
     alias :streamfile :file
+
+    ##
+    # Plays a file to the call and listens for DTMF input.
+    #
+    # @param [Hash] :args => [Array] Single-entry array with string "FILE [TIMEOUT] [MAXDIGITS]"
+    # @return [String]
+    def get_data(options)
+      raise ArgumentError if options[:args].nil?
+      soundfile, timeout, maxdigits = options[:args]
+      raise ArgumentError if soundfile.nil?
+
+      # Match Asterisk's timeout handling
+      timeout = 6000 if timeout.nil? || timeout.to_i == 0
+      # Yes, 1 million seconds.  Copied directly from Asterisk main/app.c
+      timeout = 1_000_000 if timeout.to_i < 0
+      timeout = timeout.to_i / 1000 if timeout.to_i > 0
+
+      # Yes, 1,024 digits.  Copied directly from Asterisk res/res_agi.c
+      maxdigits = 1024 if maxdigits.nil?
+
+      options = {:timeout => timeout,
+                 :choices => "[#{maxdigits} DIGITS]",
+                 :mode    => 'dtmf',
+                }
+
+      result = @current_call.ask(soundfile, options)
+      case result.name
+      when 'timeout'
+        AGI_SUCCESS_PREFIX + " (timeout)\n"
+      when 'choice'
+        AGI_SUCCESS_PREFIX + "#{result.value}\n"
+      else
+        show "Unknown Tropo response! #{result.inspect}"
+        raise CommandSoftFail
+      end
+    end
+
+    ##
+    # Stream file, prompt for DTMF, with timeout.
+    # NOTE: Asterisk supports specifying a list of escape digits.
+    #       When specified, only those digits in the list will interrupt
+    #       the audio.  This is not possible with Tropo, so *any* digit
+    #       pressed by the user will always interrupt playback.
+    #
+    # @param [Hash] :args => [Array] Single-entry array with string "FILE ESCAPE_DIGITS [TIMEOUT]"
+    # @return [String]
+    # @todo If possible, catch unplayable prompt errors and set endpos=0
+    def get_option(options)
+      raise ArgumentError if options[:args].nil?
+      soundfile, digits, timeout = options[:args]
+      raise ArgumentError if soundfile.nil?
+
+      # Match Asterisk's timeout handling
+      timeout = 5000 if timeout.nil? || timeout.to_i == 0
+      # Yes, 1 million seconds.  Copied directly from Asterisk main/app.c
+      timeout = 0 if timeout.to_i < 0
+      timeout = timeout.to_i / 1000 if timeout.to_i > 0
+
+      options = {:timeout => timeout,
+                 :choices => "[1 DIGITS]",
+                 :mode    => 'dtmf',
+                }
+
+      result = @current_call.ask(soundfile, options)
+      case result.name
+      when 'timeout'
+        AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
+      when 'choice'
+        AGI_SUCCESS_PREFIX + "#{result.value} endpos=1000\n"
+      else
+        show "Unknown Tropo response! #{result.inspect}"
+        raise CommandSoftFail
+      end
+
+    end
 
     ##
     # Grabs all of the SIP headers off of the current session/call
@@ -298,7 +408,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def hangup
       @current_call.hangup
-      @agi_response + "1\n"
+      AGI_SUCCESS_PREFIX + "1\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -308,14 +418,13 @@ class TropoAGItate
     # AGI: http://www.voip-info.org/wiki/view/Asterisk+cmd+MeetMe
     # Tropo: https://www.tropo.com/docs/scripting/conference.htm
     #
-    # param [Hash] a hash of items
+    # @param [Hash] a hash of items
     # @return [String] the response in AGI raw form
-    def meetme(options={})
+    def meetme(args=[])
       check_state
 
-      options = options[:args][0].split('|')
-      @current_call.conference options[0].chop
-      @agi_response + "0\n"
+      @current_call.conference args.shift
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -329,7 +438,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def method_missing(method, *args)
       show "Invalid or unknown command: #{method.inspect}"
-      return "510 result=Invalid or unknown Command\n"
+      raise NonsenseCommand
     end
 
     ##
@@ -342,10 +451,10 @@ class TropoAGItate
     # @param [Hash] options used to build the startCallRecording
     #
     # @return [String] the response in AGI raw form
-    def monitor(options={})
+    def monitor(url)
       check_state
-      @current_call.startCallRecording options[:args].first
-      @agi_response + "0\n"
+      @current_call.startCallRecording url
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -360,8 +469,9 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def startcallrecording(options={})
       check_state
-      @current_call.startCallRecording options[:args].delete('uri'), options[:args]
-      @agi_response + "0\n"
+
+      @current_call.startCallRecording options.delete('uri'), options
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -374,17 +484,13 @@ class TropoAGItate
     # @param [Hash] the options used for the Tropo say method
     #
     # @return [String] the response in AGI raw form
-    def playback(options={})
+    def playback(prompt)
       check_state
 
-      asterisk_sound_url = fetch_asterisk_sound(options[:args][0])
-      if asterisk_sound_url
-        text = asterisk_sound_url
-      else
-        text = options[:args][0]
-      end
-      @current_call.say text, :voice => @tropo_voice
-      @agi_response + "0\n"
+      asterisk_sound_url = fetch_asterisk_sound(prompt)
+      prompt = asterisk_sound_url if asterisk_sound_url
+      @current_call.say prompt, :voice => @tropo_voice
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -399,24 +505,21 @@ class TropoAGItate
     # @param [Hash] the options used for the Tropo ask method
     #
     # @return [String] the response in the AGI raw form
-    def read(options={})
+    def read(args=[])
       check_state
-
-      # Check to see if the READ arguments were sent in quotes, like from Asterisk-Java
-      options[:args] = options[:args][0].split(',', -4) if options[:args].length == 1
 
       # Set defaults
       prompt, choices, attempts, timeout = 'silence', '[1-255 DIGITS]', 1, 30
 
       # Set the prompt
-      prompt = options[:args][1]  if options[:args][1] != ""
+      prompt = args[1]  if !args[1].empty?
       asterisk_sound_url = fetch_asterisk_sound(prompt)
       prompt = asterisk_sound_url if asterisk_sound_url
 
       # Set other values if provided
-      choices = "[1-#{options[:args][2]} DIGITS]" unless options[:args][2].nil? || options[:args][2].empty?
-      attempts = options[:args][4] unless options[:args][4].nil? || options[:args][4].empty?
-      timeout = options[:args][5].to_f unless options[:args][5].nil? || options[:args][5].empty?
+      choices  = "[1-#{args[2]} DIGITS]" unless args[2].nil? || args[2].empty?
+      attempts = args[4]                 unless args[4].nil? || args[4].empty?
+      timeout  = args[5].to_f            unless args[5].nil? || args[5].empty?
 
       response = nil
       attempts.to_i.times do
@@ -428,8 +531,8 @@ class TropoAGItate
       end
 
       # Set the variable the user has specified for the value to insert into
-      @chanvars[options[:args][0]] = response.value
-      @agi_response + "0\n"
+      @chanvars[args[0]] = response.value
+      AGI_SUCCESS_PREFIX + "0\n"
     end
 
     ##
@@ -438,38 +541,52 @@ class TropoAGItate
     # @param [Hash] options used set the recognizer
     #
     # @return [String] the response in AGI raw form
-    def recognizer(options={})
-      if options[:args][0] == 'default'
+    def recognizer(options=[])
+      if options[0] == 'default'
         @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
       else
-        @tropo_recognizer = options[:args][0]
+        @tropo_recognizer = options[0]
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     end
 
     ##
     # Records a user input
     # AGI: http://www.voip-info.org/index.php?content_id=3176
     # Tropo: https://www.tropo.com/docs/scripting/record.htm
+    # WARNING: The option [OFFSET_SAMPLES] from AGI is unsupported by Tropo
     #
     # @param [Hash] the options used for the record
     #
     # @return [String] the response in AGI raw form
-    def record(options={})
+    def agi_record(options={})
       check_state
 
-      options = options[:args][0].split
-      silence_timeout = strip_quotes(options[options.length - 1]).split('=')
-      beep = true if strip_quotes(options[5]) == 'BEEP'
-      options = { :recordURI      => strip_quotes(options[0]),
-                  :silenceTimeout => silence_timeout[1].to_i / 1000,
-                  :maxTime        => strip_quotes(options[3]).to_i,
-                  :recordFormat   => strip_quotes(options[1]),
-                  :terminator     => strip_quotes(options[2]),
+      options = options[:args]
+      raise ArgumentError if options.length < 4
+
+      filename      = options.shift
+      format        = "audio/#{options.shift}"
+      escape_digits = format_escape_digits(options.shift)
+      timeout       = options.shift.to_i / 1000
+      while opt = options.pop
+        silence_timeout = opt.split('=')[1] if opt =~ /^s=/
+        beep = true if opt =~ /^BEEP$/i
+      end
+
+      raise ArgumentError unless format =~ /wav|mp3/
+
+      options = { :recordURI      => filename,
+                  :maxTime        => timeout,
+                  :recordFormat   => format,
+                  :terminator     => escape_digits,
                   :beep           => beep }
-      ssml =
-      @current_call.record '<speak> </speak>', options
-      @agi_response + "0\n"
+
+      options[:silenceTimeout] = silence_timeout.to_i unless silence_timeout.nil?
+
+      # Use a blank string for the required "text" parameter to Tropo::Call#record
+      ssml = @current_call.record '<speak> </speak>', options
+      AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -483,7 +600,7 @@ class TropoAGItate
       check_state
 
       @current_call.redirect options[:args][0]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -495,7 +612,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def reject
       @current_call.reject
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -511,7 +628,7 @@ class TropoAGItate
       check_state
 
       @current_call.say options[:args]['prompt'], options[:args]
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -528,7 +645,7 @@ class TropoAGItate
 
       ssml = "<speak><say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as></speak>"
       @current_call.say ssml, :voice => @tropo_voice
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -549,7 +666,7 @@ class TropoAGItate
         text = text + char + ' '
       end
       @current_call.say text, :voice => TROPO_VOICE
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -567,7 +684,7 @@ class TropoAGItate
     def saytime(options={})
       check_state
 
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -594,7 +711,7 @@ class TropoAGItate
           show "Cannot play DTMF with: #{char.inspect}"
         end
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -613,7 +730,7 @@ class TropoAGItate
       else
         status = 0
       end
-      @agi_response + status.to_s + "\n"
+      AGI_SUCCESS_PREFIX + status.to_s + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -626,7 +743,7 @@ class TropoAGItate
     def stopcallrecording(options={})
       # This command is permissible on a dead channel.
       @current_call.stopCallRecording
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -645,20 +762,33 @@ class TropoAGItate
     def channel_variable(options={})
       case options[:action]
       when 'set'
-        key_value = options[:args][0].split(' ', 2)
-        @chanvars[strip_quotes(key_value[0])] = strip_quotes(key_value[1])
-        @agi_response + "0\n"
+        var, value = options[:args]
+        @chanvars[var] = value
+        AGI_SUCCESS_PREFIX + "0\n"
       when 'get'
-        varname = strip_quotes(options[:args][0].to_s)
+        varname = options[:args][0].to_s
         if @chanvars[varname]
-          @agi_response + '1 (' + @chanvars[varname].to_s + ")\n"
+          AGI_SUCCESS_PREFIX + "1 (#{@chanvars[varname].to_s})\n"
         else
           # Variable has not been set
-          @agi_response + "0\n"
+          AGI_SUCCESS_PREFIX + "0\n"
         end
       end
     rescue => e
       log_error(this_method, e)
+    end
+
+    ##
+    # Write a log to the Tropo Application Debugger
+    #
+    # AGI: https://wiki.asterisk.org/wiki/display/AST/AGICommand_VERBOSE
+    # @param [String] message to be logged
+    # @param [Integer] log level (currently unused)
+    # @return [String] AGI response 200 result=1
+    def verbose(message, level = 0)
+      raise ArgumentError if message.nil?
+      @current_call.log message
+      AGI_SUCCESS_PREFIX + "1\n"
     end
 
     ##
@@ -667,13 +797,13 @@ class TropoAGItate
     # @param [Hash] options used set the voice
     #
     # @return [String] the response in AGI raw form
-    def voice(options={})
-      if options[:args][0] == 'default'
+    def voice(options=[])
+      if options[0] == 'default'
         @tropo_voice = @tropo_agi_config['tropo']['voice']
       else
-        @tropo_voice = options[:args][0]
+        @tropo_voice = options[0]
       end
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     end
 
     ##
@@ -683,7 +813,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def wait(options={})
       @current_call.wait options[:args][0].to_i * 1000
-      @agi_response + "0\n"
+      AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -700,7 +830,7 @@ class TropoAGItate
       check_state
 
       if @wait_for_digits_options.nil?
-        timeout = strip_quotes(options[:args][0].split(' ')[1]).to_i
+        timeout = options[:args][1].to_i
         timeout = 1000 if timeout == -1
         timeout = timeout / 1000
         response = @current_call.ask('', { :timeout    => timeout,
@@ -710,7 +840,7 @@ class TropoAGItate
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
       digit = response.value.nil? ? 0 : response.value[0]
-      @agi_response + digit.to_s + "\n"
+      AGI_SUCCESS_PREFIX + digit.to_s + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -730,7 +860,7 @@ class TropoAGItate
     def check_state
       case @current_call.state
       when 'DISCONNECTED'
-        raise RuntimeError, '511 result=Command Not Permitted on a dead channel'
+        raise DeadChannelError
       when 'RINGING'
         @current_call.answer
         # Sleep to allow audio to settle, in the case of Skype
@@ -743,29 +873,8 @@ class TropoAGItate
     # Converts the choices passed in a STREAM FILE into the requisite comma-delimited format for Tropo
     #
     # @param [required, String] escape_digits to convert
-    def create_choices(escape_digits)
-      choices = ''
-      # 1.3.1 does not have the each_char method on the String class
-      if JRUBY_VERSION == '1.3.1'
-        escape_digits.each_byte { |char| choices = choices + char.chr + ','  }
-      else
-        escape_digits.each_char { |char| choices = choices + char + ','  }
-      end
-      choices.chop
-    end
-
-    ##
-    # Extracts the prompt and escape digits from a STREAM FILE request
-    #
-    # @param [required, String] original_string to extract the prompt and escape digits out of
-    def extract_prompt_and_escape_digits(original_string)
-      original_string.gsub!('"', '')
-      match_data = original_string.match /\d{1,}\#$|\d{1,}$|\d{1,}\*\#$|\d{1,}\#\*$|\d{1,}\*|\#|\*$/
-      if match_data.nil?
-        return original_string, nil
-      else
-        return match_data.pre_match.rstrip, match_data[0]
-      end
+    def format_escape_digits(digits)
+      digits.split('').join(',')
     end
 
     ##
@@ -775,7 +884,6 @@ class TropoAGItate
     #
     # @return [String] the URL to play the file from if the filename exists
     def fetch_asterisk_sound(text)
-      text = strip_quotes text
       if @tropo_agi_config['asterisk']['sounds']['enabled']
         if @asterisk_sound_files[text]
           return @tropo_agi_config['asterisk']['sounds']['base_uri'] + '/' +
@@ -823,13 +931,7 @@ class TropoAGItate
       show "******************************** END TRACE ********************************"
       @current_call.log '====> Tropo AGI ACTION ERROR - End <===='
 
-      # Return an error based on the error encountered
-      case error.to_s
-      when '511 result=Command Not Permitted on a dead channel'
-        error.to_s + "\n"
-      else
-        @agi_response + "-1\n"
-      end
+      raise error
     end
 
     ##
@@ -852,18 +954,6 @@ class TropoAGItate
       destinations_array
     rescue => e
       show "parse_destinations method error: #{e.inspect}"
-    end
-
-    ##
-    # Parses the STREAM FILE for input to see if it is a JSON string and if so return the Hash
-    #
-    # @param [String] the string to parse
-    #
-    # @return [Hash, nil] the hash if it was JSON, nil if it was not
-    def parse_input_string(string, leftchop)
-      JSON.parse string[0..-leftchop].gsub("\\", '')
-    rescue => e
-      nil
     end
 
     ##
@@ -918,6 +1008,18 @@ class TropoAGItate
           show "Raw string: #{command}"
           result = execute_command command
           @agi_client.write result
+
+        rescue ArgumentError => e
+          show "Invalid options: #{e.message}"
+          @agi_client.write "520 Invalid command syntax."
+        rescue NonsenseCommand
+          show "Invalid or unknown command #{data}"
+          @agi_client.write "510 Invalid or unknown Command\n"
+        rescue DeadChannelError
+          @agi_client.write '511 Command Not Permitted on a dead channel'
+        rescue CommandSoftFail
+          show "Command does not work as expected on Tropo, returning soft fail: #{data}"
+          @agi_client.write "200 result=-1\n"
         rescue Errno::EPIPE
           show 'AGI socket closed by client.'
           break
@@ -1015,21 +1117,49 @@ MSG
     case options[:action]
     when 'answer', 'hangup'
       @commands.send(options[:action].to_sym)
-    when 'set', 'get'
-      if options[:command].downcase == 'variable'
-        @commands.channel_variable(options)
-      elsif options[:command].downcase == 'callerid' || options[:command].downcase == 'calleridname'
-        @commands.callerid(options)
+    when 'channel'
+      if options[:command].downcase == 'status'
+        raise CommandSoftFail unless options[:args].empty?
+        @commands.channel_status
       end
-    when 'exec', 'stream', 'channel'
-      @commands.send(options[:command].downcase.to_sym, options)
+    when 'exec'
+      @commands.send(options[:command].downcase.to_sym, options[:args])
+    when 'stream', 'channel'
+      @commands.send(options[:command].downcase.to_sym, options[:args])
+    when 'set', 'get'
+      case options[:command].downcase
+      when 'variable'
+        @commands.channel_variable(options)
+      when 'callerid', 'calleridname'
+        @commands.callerid(options)
+      when 'data'
+        @commands.get_data(options)
+      when 'option'
+        @commands.get_option(options)
+      when 'context', 'extension', 'priority'
+        raise CommandSoftFail
+      else
+        raise NonsenseCommand
+      end
+    when 'noop'
+      AGI_SUCCESS_PREFIX + "0\n"
+    when 'record'
+      @commands.agi_record(options)
+    when 'speech'
+      case options[:command]
+      when 'set', 'create', 'destroy'
+        # These do not make sense on Tropo, but should not be fatal
+        raise CommandSoftFail
+      else
+        # TODO: Map AGI SPEECH primitives to Tropo
+        raise NonsenseCommand
+      end
+    when 'verbose'
+      @commands.verbose *options[:args]
     when 'wait'
       @commands.wait_for_digits(options)
-    when 'record'
-      @commands.record(options)
     else
-      show "Invalid or unknown command #{data}"
-      return "510 result=Invalid or unknown Command\n"
+      raise NonsenseCommand
     end
   end
 
@@ -1044,10 +1174,12 @@ MSG
     # Break down the command into its component parts
     parts = data.match /^(\w+)\s*(\w+|"\w+")?\s*(.*)?$/
     return if parts.nil?
-    part1, part2, part3 = parts[1], parts[2], parts[3]
-    command = { :action => part1.downcase }
-    command.merge!({ :command => strip_quotes(part2.downcase) }) unless  part2.nil?
-    command.merge!({ :args => parse_args(part3) }) unless part3.nil? || part3.empty?
+    command = { :action => parts[1].downcase }
+    command.merge!({ :command => strip_quotes(parts[2].downcase) }) unless parts[2].nil?
+    command.merge!({ :args => parse_args(parts[3]) }) unless parts[3].nil? || parts[3].empty?
+    command[:args] = [] if command[:args].nil?
+    command[:args] = parse_appargs(command[:args].first) if command[:action].downcase == 'exec' && command[:args].first.is_a?(String)
+    command[:args] = command[:args].map{|arg| strip_quotes arg } if command[:args].is_a?(Array)
     show "command #{command.inspect}"
     command
   end
@@ -1058,21 +1190,28 @@ MSG
   # @param [String] the arguments to be parsed
   #
   # @return [Array, Hash] the parsed arguments
-  def parse_args(parts)
+  def parse_args(args)
     begin
-      args = JSON.parse strip_quotes(parts.clone)
+      JSON.parse strip_quotes(args.clone)
     rescue
-      # Split with a RegEx, since we may have commas inside of elements as well as
-      # delimitting them
-      elements = parts.split(/(,|\r\n|\n|\r)(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))/m)
-      # Get rid of the extraneous commas
-      elements.delete(",")
-      args = []
-      elements.each do |ele|
-        args << strip_quotes(ele)
-      end
+      # ""| match an empty argument: "" OR...
+      # (?:(?:".*[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*| Match an application argument string: foo,"bar bar",baz OR...
+      # ".*?[^\\]" Match all characters in a string (non-greedy) until you see an unescaped quote: "foo\"bar\"baz"
+      # [^\s]+ Match all non-whitespace characters: foo
+      # One last note: we can not strip quotes at this stage because it may interfere with application arguments
+      # that will be parsed later.
+      args.scan(/""|(?:(?:".*?[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*|".*?[^\\]"|[^\s]+/).reject{|e| e.empty?}
     end
-    args
+  end
+
+  ##
+  # Emulate Asterisk's parsing of dialplan-style comma-delimited list
+  def parse_appargs(args)
+    # (?:,|^|\|) Anchor the following expressions to the start of the line or the start of a delimited arg
+    # (?:"()"|   Match an empty pair of quotes OR...
+    #    "(.*?[^\\])"| Match anything inside quotes except escaped quotes OR...
+    #    ([^",\|]+))   Match any unquoted string ending at a delimiter ("," or "|")
+    args.scan(/(?:,|^|\|)(?:"()"|"(.*?[^\\])"|([^",\|]+))/).flatten.compact.map{|arg| arg.gsub(/\\"/, '"')}
   end
 
   ##
