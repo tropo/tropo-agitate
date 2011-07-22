@@ -41,10 +41,12 @@ describe "TropoAGItate" do
     end
   end
 
-  it "should create a properly formatted initial message" do
-    agi_uri  = URI.parse @tropo_agitate.tropo_agi_config['agi']['uri_for_local_tests']
-    message  = @tropo_agitate.initial_message(agi_uri.host, agi_uri.port, agi_uri.path[1..-1])
-    @initial_message = <<-MSG
+  describe 'AGI input parsing' do
+
+    it "should create a properly formatted initial message" do
+      agi_uri  = URI.parse @tropo_agitate.tropo_agi_config['agi']['uri_for_local_tests']
+      message  = @tropo_agitate.initial_message(agi_uri.host, agi_uri.port, agi_uri.path[1..-1])
+      @initial_message = <<-MSG
 agi_network: yes
 agi_network_script: #{agi_uri.path[1..-1]}
 agi_request: agi://#{agi_uri.host}:#{agi_uri.port}#{agi_uri.path}
@@ -70,33 +72,73 @@ agi_threadid: #{Thread.current.to_s}
 tropo_headers: {\"kermit\":\"green\",\"bigbird\":\"yellow\"}
 
 MSG
-    message.should == @initial_message
+      message.should == @initial_message
+    end
+
+    it "should parse arguments stripping quotes" do
+      result = @tropo_agitate.parse_appargs('"1234","d",""')
+      result[0].should == '1234'
+      result[1].should == 'd'
+      result[3].should == nil
+    end
+
+    it 'should detect and parse JSON as the argument string' do
+      result = @tropo_agitate.parse_args('"{"prompt":"hi!","timeout":3}"')
+      result.should == { "timeout" => 3, "prompt" => "hi!"}
+    end
+
+    it "should strip quotes from a string" do
+      @tropo_agitate.strip_quotes('"foobar"').should == 'foobar'
+    end
+
+    it "should handle commas in non JSON args" do
+      command = @tropo_agitate.parse_command('EXEC playback "Hello, LRSC!"')
+      command.should == { :action => "exec", :command => "playback", :args => ["Hello, LRSC!"] }
+    end
+
+    describe 'Asterisk AGI argument parser' do
+      it 'should properly split whitespace-delimited arguments' do
+        input = 'RECORD FILE doesnt_matter wav 12345 61000 0 BEEP s=29'
+        @tropo_agitate.parse_args(input).should == ['RECORD', 'FILE', 'doesnt_matter', 'wav', '12345', '61000', '0', 'BEEP', 's=29']
+      end
+
+      it 'should not split an application argument string' do
+        input = 'EXEC Dial "SIP/foo","30","msT"'
+        @tropo_agitate.parse_args(input).should == ['EXEC', 'Dial', '"SIP/foo","30","msT"']
+      end
+
+      it 'should properly split quoted whitespace-delimited arguments' do
+        input = 'FOO "BAR BLAT" "BING, BANG, BOOP" asdf,"blat blat",blargh'
+        @tropo_agitate.parse_args(input).should == ['FOO', '"BAR BLAT"', '"BING, BANG, BOOP"', 'asdf,"blat blat",blargh']
+      end
+    end
+
+    describe 'Asterisk application argument parser' do
+      it 'should parse a comma-delimited (Asterisk 1.6+) argument string' do
+        args = '"tel:+14045551234","30","msT"'
+        @tropo_agitate.parse_appargs(args).should == ['tel:+14045551234', '30', 'msT']
+      end
+
+      it 'should parse a pipe-delimited (Asterisk 1.4-) argument string' do
+        args = '"tel:+14045551234"|"30"|"msT"'
+        @tropo_agitate.parse_appargs(args).should == ['tel:+14045551234', '30', 'msT']
+      end
+
+      it 'should handle mixed quoted and unquoted args' do
+        @tropo_agitate.parse_appargs('asdf,"blah, blah"').should == ['asdf', 'blah, blah']
+        @tropo_agitate.parse_appargs('"asdf","blah, blah"').should == ['asdf', 'blah, blah']
+        @tropo_agitate.parse_appargs('"asdf","blah"').should == ['asdf','blah']
+        @tropo_agitate.parse_appargs('asdf,blah').should == ['asdf', 'blah']
+        @tropo_agitate.parse_appargs('"as\"df"').should == ['as"df']
+        @tropo_agitate.parse_appargs('"as\"df","blah"').should == ['as"df', 'blah']
+        @tropo_agitate.parse_appargs('"as\"df","blah, blah"').should == ['as"df', 'blah, blah']
+        @tropo_agitate.parse_appargs('testing,"",""').should == ['testing', '', '']
+      end
+    end
+
   end
 
-  it "should parse arguments stripping quotes" do
-    result = @tropo_agitate.parse_args('"Hello LSRC!"')
-    result[0].should == "Hello LSRC!"
-
-    result = @tropo_agitate.parse_args('"{"prompt":"hi!","timeout":3}"')
-    result.should == { "timeout" => 3, "prompt" => "hi!"}
-
-    result = @tropo_agitate.parse_args('"1234","d",""')
-
-    result[0].should == '1234'
-    result[1].should == 'd'
-    result[3].should == nil
-  end
-
-  it "should strip quotes from a string" do
-    @tropo_agitate.strip_quotes('"foobar"').should == 'foobar'
-  end
-
-  it "should handle commas in non JSON args" do
-    command = @tropo_agitate.parse_command('EXEC playback "Hello, LRSC!"')
-    command.should == { :action => "exec", :command => "playback", :args => ["Hello, LRSC!"] }
-  end
-
-  describe 'parsing the AGI primitive' do
+  describe 'handling the AGI primitive' do
     describe 'ANSWER' do
       it 'should properly parse the AGI input' do
         flexmock($currentCall).should_receive(:answer).once.and_return true
@@ -270,7 +312,7 @@ MSG
     describe 'HANGUP' do
       it 'should properly parse the AGI input' do
         command = @tropo_agitate.parse_command('HANGUP')
-        command.should == { :action => "hangup" }
+        command.should == { :action => "hangup", :args => [] }
       end
     end
 
@@ -456,7 +498,7 @@ MSG
     describe 'SET VARIABLE do' do
       it 'should properly parse the AGI input' do
         command = @tropo_agitate.parse_command('SET VARIABLE MYVAR "foobar"')
-        command.should == { :command => "variable", :action => "set", :args => ["foobar"] }
+        command.should == { :command => "variable", :action => "set", :args => ['MYVAR', 'foobar'] }
       end
     end
 
@@ -574,7 +616,7 @@ MSG
     describe 'Dial' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
-        command.should == { :command => "dial", :action => "exec", :args => ["sip:jsgoecke@yahoo.com", "", ""] }
+        command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','',''] }
       end
 
       it "should set DIALSTATUS after placing a call" do
@@ -595,14 +637,14 @@ MSG
     describe 'AMD' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC AMD')
-        command.should == { :command => "amd", :action => "exec" }
+        command.should == { :command => "amd", :action => "exec", :args => [] }
       end
 
       it "should properly detect an answering machine" do
-        flexmock($currentCall).should_receive(:record).and_return do |*args|
-          # Simulate a long recording, indicating that silence is not received for more than 4 seconds
-          sleep 5
-        end
+        # Simulate a long recording, indicating that silence is not received for more than 4 seconds
+        now = Time.now
+        flexmock(Time).should_receive(:now).once.and_return(now)
+        flexmock(Time).should_receive(:now).once.and_return(now + 5)
 
         @tropo_agitate.execute_command("EXEC AMD")
         amdstatus = @tropo_agitate.execute_command('GET VARIABLE AMDSTATUS')
@@ -660,15 +702,12 @@ MSG
 
   describe 'Tropo compatibility with Asterisk behavior' do
     it "should handle magic channel variables properly" do
-      number = "9095551234"
-      name = "John Denver"
-
-      command = @tropo_agitate.execute_command("SET CALLERID \"<#{number}>\"")
+      command = @tropo_agitate.execute_command('SET CALLERID "<9095551234>"')
       command.should == "200 result=0\n"
       command = @tropo_agitate.execute_command('GET VARIABLE CALLERID(num)')
-      command.should == "200 result=1 (#{number})\n"
+      command.should == "200 result=1 (9095551234)\n"
 
-      command = @tropo_agitate.execute_command("SET VARIABLE CALLERIDNAME \"#{name}\"")
+      command = @tropo_agitate.execute_command('SET VARIABLE CALLERIDNAME "John Denver"')
       command.should == "200 result=0\n"
       command = @tropo_agitate.execute_command('GET VARIABLE "CALLERIDNAME"')
       command.should == "200 result=1 (John Denver)\n"
@@ -676,7 +715,7 @@ MSG
       command.should == "200 result=1 (John Denver)\n"
 
       command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(all)"')
-      command.should == "200 result=1 (\"#{name}\" <#{number}>)\n"
+      command.should == "200 result=1 (\"John Denver\" <9095551234>)\n"
 
       command = @tropo_agitate.execute_command('SET VARIABLE FOOBAR "green"')
       command.should == "200 result=0\n"

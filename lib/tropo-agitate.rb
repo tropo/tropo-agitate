@@ -1206,10 +1206,12 @@ MSG
     # Break down the command into its component parts
     parts = data.match /^(\w+)\s*(\w+|"\w+")?\s*(.*)?$/
     return if parts.nil?
-    part1, part2, part3 = parts[1], parts[2], parts[3]
-    command = { :action => part1.downcase }
-    command.merge!({ :command => strip_quotes(part2.downcase) }) unless  part2.nil?
-    command.merge!({ :args => parse_args(part3) }) unless part3.nil? || part3.empty?
+    command = { :action => parts[1].downcase }
+    command.merge!({ :command => strip_quotes(parts[2].downcase) }) unless parts[2].nil?
+    command.merge!({ :args => parse_args(parts[3]) }) unless parts[3].nil? || parts[3].empty?
+    command[:args] = [] if command[:args].nil?
+    command[:args] = parse_appargs(command[:args].first) if command[:action].downcase == 'exec' && command[:args].first.is_a?(String)
+    command[:args] = command[:args].map{|arg| strip_quotes arg } if command[:args].is_a?(Array)
     show "command #{command.inspect}"
     command
   end
@@ -1220,21 +1222,28 @@ MSG
   # @param [String] the arguments to be parsed
   #
   # @return [Array, Hash] the parsed arguments
-  def parse_args(parts)
+  def parse_args(args)
     begin
-      args = JSON.parse strip_quotes(parts.clone)
+      JSON.parse strip_quotes(args.clone)
     rescue
-      # Split with a RegEx, since we may have commas inside of elements as well as
-      # delimitting them
-      elements = parts.split(/(,|\r\n|\n|\r)(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))/m)
-      # Get rid of the extraneous commas
-      elements.delete(",")
-      args = []
-      elements.each do |ele|
-        args << strip_quotes(ele)
-      end
+      # ""| match an empty argument: "" OR...
+      # (?:(?:".*[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*| Match an application argument string: foo,"bar bar",baz OR...
+      # ".*?[^\\]" Match all characters in a string (non-greedy) until you see an unescaped quote: "foo\"bar\"baz"
+      # [^\s]+ Match all non-whitespace characters: foo
+      # One last note: we can not strip quotes at this stage because it may interfere with application arguments
+      # that will be parsed later.
+      args.scan(/""|(?:(?:".*?[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*|".*?[^\\]"|[^\s]+/).reject{|e| e.empty?}
     end
-    args
+  end
+
+  ##
+  # Emulate Asterisk's parsing of dialplan-style comma-delimited list
+  def parse_appargs(args)
+    # (?:,|^|\|) Anchor the following expressions to the start of the line or the start of a delimited arg
+    # (?:"()"|   Match an empty pair of quotes OR...
+    #    "(.*?[^\\])"| Match anything inside quotes except escaped quotes OR...
+    #    ([^",\|]+))   Match any unquoted string ending at a delimiter ("," or "|")
+    args.scan(/(?:,|^|\|)(?:"()"|"(.*?[^\\])"|([^",\|]+))/).flatten.compact.map{|arg| arg.gsub(/\\"/, '"')}
   end
 
   ##
