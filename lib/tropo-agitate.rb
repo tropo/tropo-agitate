@@ -298,7 +298,7 @@ class TropoAGItate
           result = AGI_SUCCESS_PREFIX + "0 endpos=1000\n"
         else
           # Timeout is set to 0 so we return immediately after playback
-          response = @current_call.ask prompt, { :choices    => create_choices(escape_digits),
+          response = @current_call.ask prompt, { :choices    => format_escape_digits(escape_digits),
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
           digit = response.value.nil? ? 0 : response.value[0]
@@ -867,29 +867,8 @@ class TropoAGItate
     # Converts the choices passed in a STREAM FILE into the requisite comma-delimited format for Tropo
     #
     # @param [required, String] escape_digits to convert
-    def create_choices(escape_digits)
-      choices = ''
-      # 1.3.1 does not have the each_char method on the String class
-      if JRUBY_VERSION == '1.3.1'
-        escape_digits.each_byte { |char| choices = choices + char.chr + ','  }
-      else
-        escape_digits.each_char { |char| choices = choices + char + ','  }
-      end
-      choices.chop
-    end
-
-    ##
-    # Extracts the prompt and escape digits from a STREAM FILE request
-    #
-    # @param [required, String] original_string to extract the prompt and escape digits out of
-    def extract_prompt_and_escape_digits(original_string)
-      original_string.gsub!('"', '')
-      match_data = original_string.match /\d{1,}\#$|\d{1,}$|\d{1,}\*\#$|\d{1,}\#\*$|\d{1,}\*|\#|\*$/
-      if match_data.nil?
-        return original_string, nil
-      else
-        return match_data.pre_match.rstrip, match_data[0]
-      end
+    def format_escape_digits(digits)
+      digits.split('').join(',')
     end
 
     ##
@@ -969,18 +948,6 @@ class TropoAGItate
       destinations_array
     rescue => e
       show "parse_destinations method error: #{e.inspect}"
-    end
-
-    ##
-    # Parses the STREAM FILE for input to see if it is a JSON string and if so return the Hash
-    #
-    # @param [String] the string to parse
-    #
-    # @return [Hash, nil] the hash if it was JSON, nil if it was not
-    def parse_input_string(string, leftchop)
-      JSON.parse string[0..-leftchop].gsub("\\", '')
-    rescue => e
-      nil
     end
 
     ##
