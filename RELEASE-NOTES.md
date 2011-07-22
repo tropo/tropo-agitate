@@ -1,6 +1,15 @@
 Tropo AGItate - Release Notes
 =============================
 
+v0.2.0
+------
+* Add unit tests to cover all AGI primitives documented here: https://wiki.asterisk.org/wiki/display/AST/AGI+Commands
+* Overhaul the options parsing to be more exactly in line with Asterisk
+* Unify error handling and protocol response messages
+* Add lots of unit tests to emulate behavior seen from various AGI clients
+* Return sane error messages for applications that do not make sense on Tropo: DATABASE GET/PUT, SET CONTEXT/EXTENSION/PRIORITY, TDD MODE, SEND IMAGE/TEXT, RECEIVE TEXT/CHAR etc.
+* Add support for most remaining AGI primitives (exceptions: The SPEECH primitives, SAY ALPHA/DATE/DATETIME etc. are not yet implemented)
+
 v0.1.9
 ------
 

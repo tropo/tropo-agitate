@@ -14,7 +14,7 @@ module Tropo
   end
 
   class TropoEvent
-    attr_accessor :name, :recordURI, :choice, :attempt
+    attr_accessor :name, :recordURI, :choice, :attempt, :value
     # @value is sometimes set to an instance of TropoCall
   end
 
@@ -147,3 +147,12 @@ end
 # Make these methods global.
 Object.send(:include, Tropo)
 @tropo_testing = true
+
+# Ugly hack to make the tests run faster
+class TropoAGItate
+  class Commands
+    def sleep(s)
+      true
+    end
+  end
+end
