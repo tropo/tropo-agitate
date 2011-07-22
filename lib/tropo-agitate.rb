@@ -554,26 +554,32 @@ class TropoAGItate
     # Records a user input
     # AGI: http://www.voip-info.org/index.php?content_id=3176
     # Tropo: https://www.tropo.com/docs/scripting/record.htm
+    # WARNING: The option [OFFSET_SAMPLES] from AGI is unsupported by Tropo
     #
     # @param [Hash] the options used for the record
     #
     # @return [String] the response in AGI raw form
-    def record(options={})
+    def agi_record(options={})
       check_state
 
-      options = options[:args][0].split
-      silence_timeout = strip_quotes(options[options.length - 1]).split('=')[1]
-      beep = true if strip_quotes(options[5]) =~ /BEEP/i
-      escape_digits = strip_quotes(options[2]).split('').join(',')
-      format = strip_quotes(options[1])
-
+      options = options[:args]
       raise ArgumentError if options.length < 4
+
+      filename      = options.shift
+      format        = "audio/#{options.shift}"
+      escape_digits = format_escape_digits(options.shift)
+      timeout       = options.shift.to_i / 1000
+      while opt = options.pop
+        silence_timeout = opt.split('=')[1] if opt =~ /^s=/
+        beep = true if opt =~ /^BEEP$/i
+      end
+
       raise ArgumentError unless format =~ /wav|mp3/
 
-      options = { :recordURI      => strip_quotes(options[0]),
-                  :maxTime        => strip_quotes(options[3]).to_i / 1000,
-                  :recordFormat   => "audio/#{format}",
-                  :terminator     => strip_quotes(options[2]).split('').join(','),
+      options = { :recordURI      => filename,
+                  :maxTime        => timeout,
+                  :recordFormat   => format,
+                  :terminator     => escape_digits,
                   :beep           => beep }
 
       options[:silenceTimeout] = silence_timeout.to_i unless silence_timeout.nil?
