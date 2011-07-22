@@ -1375,6 +1375,11 @@ MSG
       @active
     end
 
+    def getHeader(header)
+      # Dead calls have no headers
+      nil
+    end
+
     def log(message)
       @system.send :log, message
     end
