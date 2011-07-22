@@ -1092,7 +1092,7 @@ agi_callingpres: 0
 agi_callingani2: 0
 agi_callington: 0
 agi_callingtns: 0
-agi_dnid: #{(@current_call.getHeader("x-sbc-numbertodial") || @current_call.calledID.gsub(/^tel:\+/, '')}
+agi_dnid: #{@current_call.getHeader("x-sbc-numbertodial") || @current_call.calledID.gsub(/^tel:\+/, '')}
 agi_rdnis: #{rdnis}
 agi_context: #{agi_context}
 agi_extension: #{@agi_exten}
