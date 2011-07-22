@@ -322,6 +322,8 @@ class TropoAGItate
       soundfile, timeout, maxdigits = options[:args]
       raise ArgumentError if soundfile.nil?
 
+      soundfile = fetch_asterisk_sound(soundfile) || soundfile
+
       # Match Asterisk's timeout handling
       timeout = 6000 if timeout.nil? || timeout.to_i == 0
       # Yes, 1 million seconds.  Copied directly from Asterisk main/app.c
@@ -350,10 +352,6 @@ class TropoAGItate
 
     ##
     # Stream file, prompt for DTMF, with timeout.
-    # NOTE: Asterisk supports specifying a list of escape digits.
-    #       When specified, only those digits in the list will interrupt
-    #       the audio.  This is not possible with Tropo, so *any* digit
-    #       pressed by the user will always interrupt playback.
     #
     # @param [Hash] :args => [Array] Single-entry array with string "FILE ESCAPE_DIGITS [TIMEOUT]"
     # @return [String]
@@ -363,6 +361,8 @@ class TropoAGItate
       soundfile, digits, timeout = options[:args]
       raise ArgumentError if soundfile.nil?
 
+      soundfile = fetch_asterisk_sound(soundfile) || soundfile
+
       # Match Asterisk's timeout handling
       timeout = 5000 if timeout.nil? || timeout.to_i == 0
       # Yes, 1 million seconds.  Copied directly from Asterisk main/app.c
@@ -370,7 +370,7 @@ class TropoAGItate
       timeout = timeout.to_i / 1000 if timeout.to_i > 0
 
       options = {:timeout => timeout,
-                 :choices => "[1 DIGITS]",
+                 :choices => format_escape_digits(digits),
                  :mode    => 'dtmf',
                 }
 
@@ -487,8 +487,7 @@ class TropoAGItate
     def playback(prompt)
       check_state
 
-      asterisk_sound_url = fetch_asterisk_sound(prompt)
-      prompt = asterisk_sound_url if asterisk_sound_url
+      prompt = fetch_asterisk_sound(prompt) || prompt
       @current_call.say prompt, :voice => @tropo_voice
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e

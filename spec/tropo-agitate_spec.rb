@@ -255,6 +255,21 @@ MSG
         flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:choices => '[1024 DIGITS]')).and_return @choice
         @tropo_agitate.execute_command('GET DATA beep').should == @choice_response
       end
+
+      it 'should convert an Asterisk-standard sound file to the Tropo URL' do
+        flexmock($currentCall).should_receive(:ask).once.with('http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm', hsh(:timeout => 6)).and_return @choice
+        @tropo_agitate.execute_command('GET DATA tt-monkeys').should == @choice_response
+      end
+
+      it 'should NOT convert a sound file without an Asterisk mapping' do
+        flexmock($currentCall).should_receive(:ask).once.with('this-file-does-not-map', hsh(:timeout => 6)).and_return @choice
+        @tropo_agitate.execute_command('GET DATA this-file-does-not-map').should == @choice_response
+      end
+
+      it 'should pass through a fully-qualified URL' do
+        flexmock($currentCall).should_receive(:ask).once.with('http://localhost/my_super_awesome_prompt.wav', hsh(:timeout => 6)).and_return @choice
+        @tropo_agitate.execute_command('GET DATA "http://localhost/my_super_awesome_prompt.wav"').should == @choice_response
+      end
     end
 
     describe 'GET FULL VARIABLE' do
@@ -278,13 +293,13 @@ MSG
       end
 
       it 'should properly parse the AGI input' do
-        params = {:timeout => 3, :mode => 'dtmf', :choices => '[1 DIGITS]'}
+        params = {:timeout => 3, :mode => 'dtmf', :choices => '0,1,2,3,4,5,6,7,8,9,0,#,*'}
         flexmock($currentCall).should_receive(:ask).once.with('beep', params).and_return @choice
         @tropo_agitate.execute_command('GET OPTION beep 01234567890#* 3000').should == @choice_response
       end
 
       it 'should properly handle a timeout response' do
-        params = {:timeout => 3, :mode => 'dtmf', :choices => '[1 DIGITS]'}
+        params = {:timeout => 3, :mode => 'dtmf', :choices => '0,1,2,3,4,5,6,7,8,9,0,#,*'}
         flexmock($currentCall).should_receive(:ask).once.with('beep', params).and_return @timeout
         @tropo_agitate.execute_command('GET OPTION beep 01234567890#* 3000').should == @timeout_response
       end
@@ -292,6 +307,21 @@ MSG
       it 'should default the timeout to 5 seconds' do
         flexmock($currentCall).should_receive(:ask).once.with('beep', hsh(:timeout => 5)).and_return @timeout
         @tropo_agitate.execute_command('GET OPTION beep 01234567890#*').should == @timeout_response
+      end
+
+      it 'should convert an Asterisk-standard sound file to the Tropo URL' do
+        flexmock($currentCall).should_receive(:ask).once.with('http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm', hsh(:choices => '1,2,3,4,5')).and_return @choice
+        @tropo_agitate.execute_command('GET OPTION tt-monkeys 12345').should == @choice_response
+      end
+
+      it 'should NOT convert a sound file without an Asterisk mapping' do
+        flexmock($currentCall).should_receive(:ask).once.with('this-file-does-not-map', hsh(:choices => '1,2,3,4,5')).and_return @choice
+        @tropo_agitate.execute_command('GET OPTION this-file-does-not-map 12345').should == @choice_response
+      end
+
+      it 'should pass through a fully-qualified URL' do
+        flexmock($currentCall).should_receive(:ask).once.with('http://localhost/my_super_awesome_prompt.wav', hsh(:choices => '1,2,3,4,5')).and_return @choice
+        @tropo_agitate.execute_command('GET OPTION "http://localhost/my_super_awesome_prompt.wav" 12345').should == @choice_response
       end
     end
 
