@@ -1,7 +1,7 @@
 %w(rubygems yaml socket json net/http uri).each { |lib| require lib }
 #####
 # This Ruby Script Emulates the Asterisk Gateway Interface (AGI)
-# VERSION = '0.1.9'
+# VERSION = '0.2.0'
 #####
 
 # We patch the Hash class to symbolize our keys
