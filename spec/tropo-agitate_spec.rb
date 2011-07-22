@@ -689,7 +689,33 @@ MSG
     end
 
     describe 'Playback' do
+      it 'should convert an Asterisk-standard sound file to the Tropo URL' do
+        flexmock($currentCall).should_receive(:say).once.with('http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm', {:voice => 'kate'}).and_return true
+        command = @tropo_agitate.execute_command('EXEC Playback tt-monkeys')
+        command.should == "200 result=0\n"
+      end
+
+      it 'should NOT convert a sound file without an Asterisk mapping' do
+        flexmock($currentCall).should_receive(:say).once.with('this-file-does-not-map', {:voice => 'kate'}).and_return true
+        command = @tropo_agitate.execute_command('EXEC Playback this-file-does-not-map')
+        command.should == "200 result=0\n"
+      end
+
+      it 'should pass through a fully-qualified URL' do
+        flexmock($currentCall).should_receive(:say).once.with('http://localhost/my_super_awesome_prompt.wav', {:voice => 'kate'}).and_return true
+        command = @tropo_agitate.execute_command('EXEC Playback "http://localhost/my_super_awesome_prompt.wav"')
+        command.should == "200 result=0\n"
+      end
+
+      it 'should pass through a free-form text string (for TTS)' do
+        flexmock($currentCall).should_receive(:say).once.with('A Man, A Plan, A Canal, Panama', {:voice => 'kate'}).and_return true
+        command = @tropo_agitate.execute_command('EXEC Playback "A Man, A Plan, A Canal, Panama"')
+        command.should == "200 result=0\n"
+      end
+
+
       it "should execute the command as Asterisk-Java would pass" do
+        flexmock($currentCall).should_receive(:say).once.with('http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm', {:voice => 'kate'}).and_return true
         command = @tropo_agitate.execute_command('EXEC "playback" "tt-monkeys"')
         command.should == "200 result=0\n"
       end
