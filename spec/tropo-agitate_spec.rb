@@ -735,7 +735,7 @@ MSG
   end
 
   it "should execute a read" do
-    command = @tropo_agitate.execute_command('EXEC READ pin,tt monkeys,5,,3,10')
+    command = @tropo_agitate.execute_command('EXEC READ pin,tt-monkeys,5,,3,10')
     command.should == "200 result=0\n"
   end
 
