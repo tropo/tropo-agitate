@@ -191,10 +191,10 @@ class TropoAGItate
     # @param [Hash] the options used to place the dial
     #
     # @return [String] the response in AGI raw form
-    def dial(args=[])
+    def dial(destinations, *args)
       check_state
 
-      destinations = parse_destinations(args.shift.split('&'))
+      destinations = parse_destinations(destinations.split('&'))
       options = {}
 
       # Convert Asterisk app_dial inputs to Tropo syntax
@@ -282,7 +282,7 @@ class TropoAGItate
     # @param [Hash] the options used to play the file back
     #
     # @return [String] the response in AGI raw form
-    def file(args=[])
+    def file(*args)
       check_state
 
       options = JSON.parse args.first rescue nil
@@ -420,10 +420,10 @@ class TropoAGItate
     #
     # @param [Hash] a hash of items
     # @return [String] the response in AGI raw form
-    def meetme(args=[])
+    def meetme(roomno, *args)
       check_state
 
-      @current_call.conference args.shift
+      @current_call.conference roomno
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -505,7 +505,7 @@ class TropoAGItate
     # @param [Hash] the options used for the Tropo ask method
     #
     # @return [String] the response in the AGI raw form
-    def read(args=[])
+    def read(*args)
       check_state
 
       # Set defaults
@@ -541,7 +541,7 @@ class TropoAGItate
     # @param [Hash] options used set the recognizer
     #
     # @return [String] the response in AGI raw form
-    def recognizer(options=[])
+    def recognizer(*options)
       if options[0] == 'default'
         @tropo_recognizer = @tropo_agi_config['tropo']['recognizer']
       else
@@ -797,7 +797,7 @@ class TropoAGItate
     # @param [Hash] options used set the voice
     #
     # @return [String] the response in AGI raw form
-    def voice(options=[])
+    def voice(*options)
       if options[0] == 'default'
         @tropo_voice = @tropo_agi_config['tropo']['voice']
       else
@@ -1123,9 +1123,9 @@ MSG
         @commands.channel_status
       end
     when 'exec'
-      @commands.send(options[:command].downcase.to_sym, options[:args])
+      @commands.send(options[:command].downcase.to_sym, *options[:args])
     when 'stream', 'channel'
-      @commands.send(options[:command].downcase.to_sym, options[:args])
+      @commands.send(options[:command].downcase.to_sym, *options[:args])
     when 'set', 'get'
       case options[:command].downcase
       when 'variable'
@@ -1179,7 +1179,7 @@ MSG
     command.merge!({ :args => parse_args(parts[3]) }) unless parts[3].nil? || parts[3].empty?
     command[:args] = [] if command[:args].nil?
     command[:args] = parse_appargs(command[:args].first) if command[:action].downcase == 'exec' && command[:args].first.is_a?(String)
-    command[:args] = command[:args].map{|arg| strip_quotes arg } if command[:args].is_a?(Array)
+    command[:args] = command[:args].map{|arg| arg.is_a?(String) ? strip_quotes(arg) : arg }
     show "command #{command.inspect}"
     command
   end
@@ -1192,7 +1192,7 @@ MSG
   # @return [Array, Hash] the parsed arguments
   def parse_args(args)
     begin
-      JSON.parse strip_quotes(args.clone)
+      [JSON.parse strip_quotes(args.clone)]
     rescue
       # ""| match an empty argument: "" OR...
       # (?:(?:".*[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*| Match an application argument string: foo,"bar bar",baz OR...
