@@ -570,8 +570,13 @@ MSG
       end
 
       it "should execute the command as Asterisk-Java would pass" do
-        command = @tropo_agitate.execute_command('STREAM FILE "tt-monkeys" "1234567890*#"')
-        command.should == "200 result=57 endpos=1000\n"
+        params = {:choices => '1,2,3,4,5,6,7,8,9,0,*,#', :choiceMode => 'keypad', :timeout => 0 }
+        tropo_audio_url = 'http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm'
+        response = TropoEvent.new
+        response.name = 'choice'
+        response.value = 57.chr
+        flexmock($currentCall).should_receive(:ask).with(tropo_audio_url, params).and_return response
+        @tropo_agitate.execute_command('STREAM FILE "tt-monkeys" "1234567890*#"').should == "200 result=57 endpos=1000\n"
       end
     end
 
