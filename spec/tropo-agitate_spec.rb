@@ -388,43 +388,43 @@ MSG
 
     describe 'SAY ALPHA' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
     describe 'SAY DATE' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
     describe 'SAY DATETIME' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
     describe 'SAY DIGITS' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
     describe 'SAY NUMBER' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
     describe 'SAY PHONETIC' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
     describe 'SAY TIME' do
       it 'should properly parse the AGI input' do
-        false.should be true
+        pending
       end
     end
 
