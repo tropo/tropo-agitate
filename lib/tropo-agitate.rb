@@ -438,7 +438,7 @@ class TropoAGItate
     # @return [String] the response in AGI raw form
     def method_missing(method, *args)
       show "Invalid or unknown command: #{method.inspect}"
-      return "510 result=Invalid or unknown Command\n"
+      raise NonsenseCommand
     end
 
     ##
