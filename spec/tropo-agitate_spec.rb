@@ -854,4 +854,11 @@ MSG
 
     @tropo_agitate.execute_command('GET VARIABLE REASON').should == "200 result=1 (8)\n"
   end
+
+  it 'should parse user-supplied JSON variables' do
+    $user_vars = {'myvar' => 'awesome', 'bliss' => 'now' }.to_json
+    @tropo_agitate = agitate_factory
+    @tropo_agitate.commands.channel_variable({:action => 'get', :args => ['myvar']}).should == "200 result=1 (awesome)\n"
+    @tropo_agitate.commands.channel_variable({:action => 'get', :args => ['bliss']}).should == "200 result=1 (now)\n"
+  end
 end
