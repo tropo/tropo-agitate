@@ -323,6 +323,13 @@ MSG
         flexmock($currentCall).should_receive(:ask).once.with('http://localhost/my_super_awesome_prompt.wav', hsh(:choices => '1,2,3,4,5')).and_return @choice
         @tropo_agitate.execute_command('GET OPTION "http://localhost/my_super_awesome_prompt.wav" 12345').should == @choice_response
       end
+
+      it 'should raise a AGI soft failure on an unknown Tropo response' do
+        result = TropoEvent.new
+        result.name = 'printer_on_fire'
+        flexmock($currentCall).should_receive(:ask).once.and_return result
+        expect { @tropo_agitate.execute_command('GET OPTION "blah" 12345') }.to raise_error TropoAGItate::CommandSoftFail
+      end
     end
 
     describe 'GET VARIABLE' do
@@ -674,6 +681,15 @@ MSG
           command = @tropo_agitate.execute_command('GET VARIABLE DIALSTATUS')
           command.should == "200 result=1 (#{asterisk_result})\n"
         end
+      end
+
+      it 'should set Asterisk DIALSTATUS to CONGESTION on an unrecognized Tropo result' do
+          result = TropoEvent.new
+          result.name = 'printer_on_fire'
+          flexmock($currentCall).should_receive(:transfer).once.and_return result
+          @tropo_agitate.execute_command('EXEC Dial "sip:hello@127.0.0.1","20",""')
+          command = @tropo_agitate.execute_command('GET VARIABLE DIALSTATUS')
+          command.should == "200 result=1 (CONGESTION)\n"
       end
 
       it "should set the dial timeout correctly" do
