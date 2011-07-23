@@ -9,5 +9,6 @@ group :development do
   gem 'rspec', '>= 2.0.0'
   gem 'flexmock'
   gem 'fakeweb'
+  gem 'rcov'
   #gem 'em-spec'
 end
