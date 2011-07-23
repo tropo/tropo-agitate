@@ -765,10 +765,32 @@ MSG
   end
 
   describe 'Tropo-specific dialplan application' do
-    describe 'StartCallRecording' do
+    describe 'startCallRecording' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
         command.should == { :command => "startcallrecording", :action => "exec", :args => [{ 'method' => 'POST', 'uri' => 'http://localhost' }] }
+      end
+    end
+
+    describe 'redirect' do
+      it 'should work' do
+        flexmock($currentCall).should_receive(:redirect).once.with('sip:usera@127.0.0.1')
+        @tropo_agitate.execute_command('EXEC redirect "sip:usera@127.0.0.1"').should == "200 result=0\n"
+      end
+
+      it 'should raise an error if the call is already answered' do
+        pending
+      end
+    end
+
+    describe 'reject' do
+      it 'should work' do
+        flexmock($currentCall).should_receive(:reject).once.with_no_args
+        @tropo_agitate.execute_command('EXEC reject').should == "200 result=0\n"
+      end
+
+      it 'should raise an error if the call is already answered' do
+        pending
       end
     end
   end

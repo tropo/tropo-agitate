@@ -595,10 +595,10 @@ class TropoAGItate
     # Tropo: https://www.tropo.com/docs/scripting/redirect.htm
     #
     # @return [String] the response in AGI raw form
-    def redirect(options={})
+    def redirect(destination)
       check_state
 
-      @current_call.redirect options[:args][0]
+      @current_call.redirect destination
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
