@@ -1125,6 +1125,11 @@ MSG
       @commands.send(options[:command].downcase.to_sym, *options[:args])
     when 'stream', 'channel'
       @commands.send(options[:command].downcase.to_sym, *options[:args])
+    when 'say'
+      case command = options[:command].downcase
+      when 'digits', 'number' then @commands.send("say#{command}".to_sym, (options))
+      else raise NonsenseCommand
+      end
     when 'set', 'get'
       case options[:command].downcase
       when 'variable'

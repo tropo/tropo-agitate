@@ -436,13 +436,15 @@ MSG
 
     describe 'SAY DIGITS' do
       it 'should properly parse the AGI input' do
-        pending
+        flexmock($currentCall).should_receive(:say).once.with("<speak><say-as interpret-as='vxml:digits'>12345</say-as></speak>", {:voice=>"kate"})
+        @tropo_agitate.execute_command('SAY DIGITS 12345').should == "200 result=0\n"
       end
     end
 
     describe 'SAY NUMBER' do
       it 'should properly parse the AGI input' do
-        pending
+        flexmock($currentCall).should_receive(:say).once.with(hsh(:args => ["12345"]), {:voice => 'kate'})
+        @tropo_agitate.execute_command('SAY NUMBER 12345').should == "200 result=0\n"
       end
     end
 
