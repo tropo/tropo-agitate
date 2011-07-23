@@ -662,6 +662,18 @@ MSG
         $currentCall.transferInfo[:destinations].should == [dest]
       end
 
+      {'success' => 'ANSWER', 'timeout' => 'NOANSWER', 'error' => 'CONGESTION',
+       'callFailure' => 'CHANUNAVAIL'}.each do |tropo_result, asterisk_result|
+        it "should set Asterisk DIALSTATUS to #{asterisk_result} properly based on the Tropo result #{tropo_result}" do
+          result = TropoEvent.new
+          result.name = tropo_result
+          flexmock($currentCall).should_receive(:transfer).once.and_return result
+          @tropo_agitate.execute_command('EXEC Dial "sip:hello@127.0.0.1","20",""')
+          command = @tropo_agitate.execute_command('GET VARIABLE DIALSTATUS')
+          command.should == "200 result=1 (#{asterisk_result})\n"
+        end
+      end
+
       it "should set the dial timeout correctly" do
         timeout = 45
         @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"#{timeout}\",\"\"")

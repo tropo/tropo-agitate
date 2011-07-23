@@ -216,7 +216,7 @@ class TropoAGItate
       when 'success'     then 'ANSWER'
       when 'timeout'     then 'NOANSWER'
       when 'error'       then 'CONGESTION'
-      when 'callFailure' then 'CHANUNAVAIL'
+      when 'callfailure' then 'CHANUNAVAIL'
       else 'CONGESTION'
       end
       AGI_SUCCESS_PREFIX + "0\n"
