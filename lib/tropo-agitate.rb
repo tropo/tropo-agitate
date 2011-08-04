@@ -623,10 +623,19 @@ class TropoAGItate
     # @param [Hash] options used to build the say
     #
     # @return [String] the response in AGI raw form
-    def say(options={})
+    def say(prompt, voice = nil)
       check_state
 
-      @current_call.say options[:args]['prompt'], options[:args]
+      if prompt.is_a? Hash
+        options = prompt.clone
+        raise ArgumentError unless options.has_key? :prompt
+        prompt  = options.delete(:prompt)
+        voice   = options.delete(:voice)  || @tropo_voice
+      else
+        voice = @tropo_voice unless voice
+      end
+
+      @current_call.say prompt, :voice => voice
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)

@@ -810,6 +810,31 @@ MSG
         pending
       end
     end
+
+    describe 'say' do
+      it 'should work' do
+        flexmock($currentCall).should_receive(:say).once.with('Hello LSRC!', hsh(:voice => 'kate'))
+        @tropo_agitate.execute_command('EXEC say "Hello LSRC!"').should == "200 result=0\n"
+      end
+
+      it 'should allow specifying an alternate voice' do
+        flexmock($currentCall).should_receive(:say).once.with('Hello LSRC!', hsh(:voice => 'paul'))
+        @tropo_agitate.execute_command('EXEC say "Hello LSRC!","paul"').should == "200 result=0\n"
+      end
+
+      it 'should allow arguments to be passed as JSON' do
+        args = {:prompt => 'Hello, LSRC!', :voice => 'paul'}.to_json
+        flexmock($currentCall).should_receive(:say).once.with('Hello, LSRC!', hsh(:voice => 'paul'))
+        @tropo_agitate.execute_command("EXEC say \"#{args}\"").should == "200 result=0\n"
+      end
+
+      it 'should raise ArgumentError if no prompt is supplied with JSON args' do
+        args = {:text => 'Hello, LSRC!', :voice => 'paul'}.to_json
+        expect {
+          @tropo_agitate.execute_command("EXEC say \"#{args}\"").should == "200 result=0\n"
+        }.to raise_error ArgumentError
+      end
+    end
   end
 
   describe 'Tropo compatibility with Asterisk behavior' do
