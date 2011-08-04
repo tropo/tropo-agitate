@@ -84,16 +84,11 @@ MSG
 
     it 'should detect and parse JSON as the argument string' do
       result = @tropo_agitate.parse_args('"{"prompt":"hi!","timeout":3}"')
-      result.should == [{ "timeout" => 3, "prompt" => "hi!"}]
+      result.should == [{ :timeout => 3, :prompt => "hi!"}]
     end
 
     it "should strip quotes from a string" do
       @tropo_agitate.strip_quotes('"foobar"').should == 'foobar'
-    end
-
-    it "should handle commas in non JSON args" do
-      command = @tropo_agitate.parse_command('EXEC playback "Hello, LRSC!"')
-      command.should == { :action => "exec", :command => "playback", :args => ["Hello, LRSC!"] }
     end
 
     describe 'Asterisk AGI argument parser' do
@@ -203,7 +198,7 @@ MSG
         result = @tropo_agitate.execute_command('EXEC MeetMe "1234","d",""')
         result.should == "200 result=0\n"
 
-        result = @tropo_agitate.execute_command("EXEC startcallrecording #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
+        result = @tropo_agitate.execute_command("EXEC startcallrecording #{{ :method => 'POST', :uri => 'http://localhost' }.to_json}")
         result.should == "200 result=0\n"
 
         result = @tropo_agitate.execute_command('EXEC voice "simon"')
@@ -650,10 +645,14 @@ MSG
   end
 
   describe 'emulating Asterisk dialplan app' do
+    before :each do
+      @tropo_agitate.commands.chanvars = TropoAGItate::MagicChannelVariables.new
+    end
+
     describe 'ASK' do
       it 'should parse the input' do
         command = @tropo_agitate.parse_command('EXEC ask "{"prompt":"hi!","timeout":3}"')
-        command.should == { :command => "ask", :action => "exec", :args => [{ "timeout" => 3, "prompt" => "hi!"}] }
+        command.should == { :command => "ask", :action => "exec", :args => [{ :timeout => 3, :prompt => "hi!"}] }
       end
     end
 
@@ -744,7 +743,7 @@ MSG
     describe 'MixMonitor' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC mixmonitor "{"method":"POST","uri":"http://localhost"}"')
-        command.should == { :command => "mixmonitor", :action => "exec", :args => [{ 'method' => 'POST', 'uri' => 'http://localhost' }] }
+        command.should == { :command => "mixmonitor", :action => "exec", :args => [{ :method => 'POST', :uri => 'http://localhost' }] }
       end
     end
 
@@ -786,7 +785,7 @@ MSG
     describe 'startCallRecording' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
-        command.should == { :command => "startcallrecording", :action => "exec", :args => [{ 'method' => 'POST', 'uri' => 'http://localhost' }] }
+        command.should == { :command => "startcallrecording", :action => "exec", :args => [{ :method => 'POST', :uri => 'http://localhost' }] }
       end
     end
 

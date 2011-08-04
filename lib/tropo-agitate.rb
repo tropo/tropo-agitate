@@ -1196,7 +1196,7 @@ MSG
   # @return [Array, Hash] the parsed arguments
   def parse_args(args)
     begin
-      [JSON.parse strip_quotes(args.clone)]
+      [JSON.parse(strip_quotes(args.clone)).symbolize_keys!]
     rescue
       # ""| match an empty argument: "" OR...
       # (?:(?:".*[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*| Match an application argument string: foo,"bar bar",baz OR...
