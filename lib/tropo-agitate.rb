@@ -623,10 +623,19 @@ class TropoAGItate
     # @param [Hash] options used to build the say
     #
     # @return [String] the response in AGI raw form
-    def say(options={})
+    def say(prompt, voice = nil)
       check_state
 
-      @current_call.say options[:args]['prompt'], options[:args]
+      if prompt.is_a? Hash
+        options = prompt.clone
+        raise ArgumentError unless options.has_key? :prompt
+        prompt  = options.delete(:prompt)
+        voice   = options.delete(:voice)  || @tropo_voice
+      else
+        voice = @tropo_voice unless voice
+      end
+
+      @current_call.say prompt, :voice => voice
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
@@ -1196,7 +1205,7 @@ MSG
   # @return [Array, Hash] the parsed arguments
   def parse_args(args)
     begin
-      [JSON.parse strip_quotes(args.clone)]
+      [JSON.parse(strip_quotes(args.clone)).symbolize_keys!]
     rescue
       # ""| match an empty argument: "" OR...
       # (?:(?:".*[^\\]"|[^\s"]*|[^\s]+)*),*[^\s]*| Match an application argument string: foo,"bar bar",baz OR...
@@ -1211,11 +1220,7 @@ MSG
   ##
   # Emulate Asterisk's parsing of dialplan-style comma-delimited list
   def parse_appargs(args)
-    # (?:,|^|\|) Anchor the following expressions to the start of the line or the start of a delimited arg
-    # (?:"()"|   Match an empty pair of quotes OR...
-    #    "(.*?[^\\])"| Match anything inside quotes except escaped quotes OR...
-    #    ([^",\|]+))   Match any unquoted string ending at a delimiter ("," or "|")
-    args.scan(/(?:,|^|\|)(?:"()"|"(.*?[^\\])"|([^",\|]+))/).flatten.compact.map{|arg| arg.gsub(/\\"/, '"')}
+    args.split(/,|\|/).map {|arg| arg.gsub(/^"|"$|""/, '').gsub(/\\"/, '"') }
   end
 
   ##

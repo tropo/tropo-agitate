@@ -84,16 +84,11 @@ MSG
 
     it 'should detect and parse JSON as the argument string' do
       result = @tropo_agitate.parse_args('"{"prompt":"hi!","timeout":3}"')
-      result.should == [{ "timeout" => 3, "prompt" => "hi!"}]
+      result.should == [{ :timeout => 3, :prompt => "hi!"}]
     end
 
     it "should strip quotes from a string" do
       @tropo_agitate.strip_quotes('"foobar"').should == 'foobar'
-    end
-
-    it "should handle commas in non JSON args" do
-      command = @tropo_agitate.parse_command('EXEC playback "Hello, LRSC!"')
-      command.should == { :action => "exec", :command => "playback", :args => ["Hello, LRSC!"] }
     end
 
     describe 'Asterisk AGI argument parser' do
@@ -125,13 +120,13 @@ MSG
       end
 
       it 'should handle mixed quoted and unquoted args' do
-        @tropo_agitate.parse_appargs('asdf,"blah, blah"').should == ['asdf', 'blah, blah']
-        @tropo_agitate.parse_appargs('"asdf","blah, blah"').should == ['asdf', 'blah, blah']
+        @tropo_agitate.parse_appargs('asdf,"blah, blah"').should == ['asdf', 'blah', ' blah']
+        @tropo_agitate.parse_appargs('"asdf","blah, blah"').should == ['asdf', 'blah', ' blah']
         @tropo_agitate.parse_appargs('"asdf","blah"').should == ['asdf','blah']
         @tropo_agitate.parse_appargs('asdf,blah').should == ['asdf', 'blah']
         @tropo_agitate.parse_appargs('"as\"df"').should == ['as"df']
         @tropo_agitate.parse_appargs('"as\"df","blah"').should == ['as"df', 'blah']
-        @tropo_agitate.parse_appargs('"as\"df","blah, blah"').should == ['as"df', 'blah, blah']
+        @tropo_agitate.parse_appargs('"as\"df","blah, blah"').should == ['as"df', 'blah', ' blah']
         @tropo_agitate.parse_appargs('testing,"",""').should == ['testing', '', '']
       end
     end
@@ -203,7 +198,7 @@ MSG
         result = @tropo_agitate.execute_command('EXEC MeetMe "1234","d",""')
         result.should == "200 result=0\n"
 
-        result = @tropo_agitate.execute_command("EXEC startcallrecording #{{ 'method' => 'POST', 'uri' => 'http://localhost' }.to_json}")
+        result = @tropo_agitate.execute_command("EXEC startcallrecording #{{ :method => 'POST', :uri => 'http://localhost' }.to_json}")
         result.should == "200 result=0\n"
 
         result = @tropo_agitate.execute_command('EXEC voice "simon"')
@@ -650,10 +645,14 @@ MSG
   end
 
   describe 'emulating Asterisk dialplan app' do
+    before :each do
+      @tropo_agitate.commands.chanvars = TropoAGItate::MagicChannelVariables.new
+    end
+
     describe 'ASK' do
       it 'should parse the input' do
         command = @tropo_agitate.parse_command('EXEC ask "{"prompt":"hi!","timeout":3}"')
-        command.should == { :command => "ask", :action => "exec", :args => [{ "timeout" => 3, "prompt" => "hi!"}] }
+        command.should == { :command => "ask", :action => "exec", :args => [{ :timeout => 3, :prompt => "hi!"}] }
       end
     end
 
@@ -661,6 +660,13 @@ MSG
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
         command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','',''] }
+      end
+
+      it 'should properly parse a telephone number dial string' do
+        result = TropoEvent.new
+        result.name = 'success'
+        flexmock($currentCall).should_receive(:transfer).once.with(['3035551234'], hsh(:timeout => 15)).and_return result
+        @tropo_agitate.execute_command('EXEC "Dial" "3035551234,15"').should == "200 result=0\n"
       end
 
       it "should set DIALSTATUS after placing a call" do
@@ -744,7 +750,7 @@ MSG
     describe 'MixMonitor' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC mixmonitor "{"method":"POST","uri":"http://localhost"}"')
-        command.should == { :command => "mixmonitor", :action => "exec", :args => [{ 'method' => 'POST', 'uri' => 'http://localhost' }] }
+        command.should == { :command => "mixmonitor", :action => "exec", :args => [{ :method => 'POST', :uri => 'http://localhost' }] }
       end
     end
 
@@ -767,13 +773,6 @@ MSG
         command.should == "200 result=0\n"
       end
 
-      it 'should pass through a free-form text string (for TTS)' do
-        flexmock($currentCall).should_receive(:say).once.with('A Man, A Plan, A Canal, Panama', {:voice => 'kate'}).and_return true
-        command = @tropo_agitate.execute_command('EXEC Playback "A Man, A Plan, A Canal, Panama"')
-        command.should == "200 result=0\n"
-      end
-
-
       it "should execute the command as Asterisk-Java would pass" do
         flexmock($currentCall).should_receive(:say).once.with('http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm', {:voice => 'kate'}).and_return true
         command = @tropo_agitate.execute_command('EXEC "playback" "tt-monkeys"')
@@ -786,7 +785,7 @@ MSG
     describe 'startCallRecording' do
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
-        command.should == { :command => "startcallrecording", :action => "exec", :args => [{ 'method' => 'POST', 'uri' => 'http://localhost' }] }
+        command.should == { :command => "startcallrecording", :action => "exec", :args => [{ :method => 'POST', :uri => 'http://localhost' }] }
       end
     end
 
@@ -809,6 +808,31 @@ MSG
 
       it 'should raise an error if the call is already answered' do
         pending
+      end
+    end
+
+    describe 'say' do
+      it 'should work' do
+        flexmock($currentCall).should_receive(:say).once.with('Hello LSRC!', hsh(:voice => 'kate'))
+        @tropo_agitate.execute_command('EXEC say "Hello LSRC!"').should == "200 result=0\n"
+      end
+
+      it 'should allow specifying an alternate voice' do
+        flexmock($currentCall).should_receive(:say).once.with('Hello LSRC!', hsh(:voice => 'paul'))
+        @tropo_agitate.execute_command('EXEC say "Hello LSRC!","paul"').should == "200 result=0\n"
+      end
+
+      it 'should allow arguments to be passed as JSON' do
+        args = {:prompt => 'Hello, LSRC!', :voice => 'paul'}.to_json
+        flexmock($currentCall).should_receive(:say).once.with('Hello, LSRC!', hsh(:voice => 'paul'))
+        @tropo_agitate.execute_command("EXEC say \"#{args}\"").should == "200 result=0\n"
+      end
+
+      it 'should raise ArgumentError if no prompt is supplied with JSON args' do
+        args = {:text => 'Hello, LSRC!', :voice => 'paul'}.to_json
+        expect {
+          @tropo_agitate.execute_command("EXEC say \"#{args}\"").should == "200 result=0\n"
+        }.to raise_error ArgumentError
       end
     end
   end
