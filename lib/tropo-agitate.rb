@@ -1211,11 +1211,7 @@ MSG
   ##
   # Emulate Asterisk's parsing of dialplan-style comma-delimited list
   def parse_appargs(args)
-    # (?:,|^|\|) Anchor the following expressions to the start of the line or the start of a delimited arg
-    # (?:"()"|   Match an empty pair of quotes OR...
-    #    "(.*?[^\\])"| Match anything inside quotes except escaped quotes OR...
-    #    ([^",\|]+))   Match any unquoted string ending at a delimiter ("," or "|")
-    args.scan(/(?:,|^|\|)(?:"()"|"(.*?[^\\])"|([^",\|]+))/).flatten.compact.map{|arg| arg.gsub(/\\"/, '"')}
+    args.split(/,|\|/).map {|arg| arg.gsub(/^"|"$|""/, '').gsub(/\\"/, '"') }
   end
 
   ##

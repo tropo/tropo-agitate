@@ -120,13 +120,13 @@ MSG
       end
 
       it 'should handle mixed quoted and unquoted args' do
-        @tropo_agitate.parse_appargs('asdf,"blah, blah"').should == ['asdf', 'blah, blah']
-        @tropo_agitate.parse_appargs('"asdf","blah, blah"').should == ['asdf', 'blah, blah']
+        @tropo_agitate.parse_appargs('asdf,"blah, blah"').should == ['asdf', 'blah', ' blah']
+        @tropo_agitate.parse_appargs('"asdf","blah, blah"').should == ['asdf', 'blah', ' blah']
         @tropo_agitate.parse_appargs('"asdf","blah"').should == ['asdf','blah']
         @tropo_agitate.parse_appargs('asdf,blah').should == ['asdf', 'blah']
         @tropo_agitate.parse_appargs('"as\"df"').should == ['as"df']
         @tropo_agitate.parse_appargs('"as\"df","blah"').should == ['as"df', 'blah']
-        @tropo_agitate.parse_appargs('"as\"df","blah, blah"').should == ['as"df', 'blah, blah']
+        @tropo_agitate.parse_appargs('"as\"df","blah, blah"').should == ['as"df', 'blah', ' blah']
         @tropo_agitate.parse_appargs('testing,"",""').should == ['testing', '', '']
       end
     end
@@ -662,6 +662,13 @@ MSG
         command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','',''] }
       end
 
+      it 'should properly parse a telephone number dial string' do
+        result = TropoEvent.new
+        result.name = 'success'
+        flexmock($currentCall).should_receive(:transfer).once.with(['3035551234'], hsh(:timeout => 15)).and_return result
+        @tropo_agitate.execute_command('EXEC "Dial" "3035551234,15"').should == "200 result=0\n"
+      end
+
       it "should set DIALSTATUS after placing a call" do
         dest = "sip:+14045551234"
         @tropo_agitate.execute_command("EXEC Dial \"#{dest}\",\"20\",\"\"")
@@ -765,13 +772,6 @@ MSG
         command = @tropo_agitate.execute_command('EXEC Playback "http://localhost/my_super_awesome_prompt.wav"')
         command.should == "200 result=0\n"
       end
-
-      it 'should pass through a free-form text string (for TTS)' do
-        flexmock($currentCall).should_receive(:say).once.with('A Man, A Plan, A Canal, Panama', {:voice => 'kate'}).and_return true
-        command = @tropo_agitate.execute_command('EXEC Playback "A Man, A Plan, A Canal, Panama"')
-        command.should == "200 result=0\n"
-      end
-
 
       it "should execute the command as Asterisk-Java would pass" do
         flexmock($currentCall).should_receive(:say).once.with('http://hosting.tropo.com/49767/www/audio/asterisk_sounds/en/tt-monkeys.gsm', {:voice => 'kate'}).and_return true
