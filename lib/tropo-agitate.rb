@@ -1021,7 +1021,7 @@ class TropoAGItate
           show "Invalid options: #{e.message}"
           @agi_client.write "520 Invalid command syntax."
         rescue NonsenseCommand
-          show "Invalid or unknown command #{data}"
+          show "Invalid or unknown command #{command}"
           @agi_client.write "510 Invalid or unknown Command\n"
         rescue DeadChannelError
           @agi_client.write '511 Command Not Permitted on a dead channel'
