@@ -1016,6 +1016,7 @@ class TropoAGItate
   #
   # @return [Boolean] whether the socket is open or not
   def run
+    sent_hangup = false
     if create_socket_connection
       until @agi_client.closed?
         begin
@@ -1043,6 +1044,13 @@ class TropoAGItate
           show "Error is: #{e}"
           @current_call.hangup
           break
+        ensure
+          unless $currentCall.isActive
+            unless sent_hangup
+              @agi_client.write "HANGUP\n"
+              sent_hangup = true
+            end
+          end
         end
       end
       close_socket
