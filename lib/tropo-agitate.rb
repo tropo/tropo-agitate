@@ -842,7 +842,11 @@ class TropoAGItate
 
       if @wait_for_digits_options.nil?
         timeout = options[:args][1].to_i
-        timeout = 1000 if timeout == -1
+
+        # Set timeout to 2 hours, which Tropo says is the longest we can wait.
+        timeout = 2 * 60 * 60 * 1000 if timeout == -1
+
+        # Tropo wants seconds; AGI sent milliseconds
         timeout = timeout / 1000
         response = @current_call.ask('', { :timeout    => timeout,
                                            :choices    => '[1 DIGIT], *, #',
