@@ -779,6 +779,13 @@ MSG
         command.should == "200 result=0\n"
       end
     end
+
+    describe 'SayDigits' do
+      it 'should work' do
+        flexmock($currentCall).should_receive(:say).once.with("<speak><say-as interpret-as='vxml:digits'>12345</say-as></speak>", {:voice=>"kate"})
+        @tropo_agitate.execute_command('EXEC saydigits 12345').should == "200 result=0\n"
+      end
+    end
   end
 
   describe 'Tropo-specific dialplan application' do

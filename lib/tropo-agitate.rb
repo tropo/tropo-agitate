@@ -651,6 +651,9 @@ class TropoAGItate
     def saydigits(options={})
       check_state
 
+      # Compatibility with Asterisk dialplan app
+      options = {:args => [options]} unless options.is_a? Hash
+
       ssml = "<speak><say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as></speak>"
       @current_call.say ssml, :voice => @tropo_voice
       AGI_SUCCESS_PREFIX + "0\n"
