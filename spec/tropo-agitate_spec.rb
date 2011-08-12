@@ -639,7 +639,33 @@ MSG
 
     describe 'WAIT FOR DIGIT' do
       it 'should properly parse the AGI input' do
-        pending "This is handled specifically in a lot of cases below.  We need a generic test here as well."
+        response = TropoEvent.new
+        response.name = 'choice'
+        response.value = 53.chr
+        expected_options = { :timeout    => 5,
+                             :choices    => '[1 DIGIT], *, #',
+                             :choiceMode => 'keypad' }
+        flexmock($currentCall).should_receive(:ask).once.with('', expected_options).and_return response
+        @tropo_agitate.execute_command('WAIT FOR DIGIT "5000"').should == "200 result=53\n"
+      end
+
+      it 'should return a correct response on no input' do
+        response = TropoEvent.new
+        response.name = 'timeout'
+        response.value = nil
+        expected_options = { :timeout    => 5,
+                             :choices    => '[1 DIGIT], *, #',
+                             :choiceMode => 'keypad' }
+        flexmock($currentCall).should_receive(:ask).once.with('', expected_options).and_return response
+        @tropo_agitate.execute_command('WAIT FOR DIGIT "5000"').should == "200 result=0\n"
+      end
+
+      it 'should handle an indefinite timeout' do
+        response = TropoEvent.new
+        response.name = 'choice'
+        response.value = 53.chr
+        flexmock($currentCall).should_receive(:ask).once.with('', hsh(:timeout => 7200)).and_return response
+        @tropo_agitate.execute_command('WAIT FOR DIGIT "-1"').should == "200 result=53\n"
       end
     end
   end
