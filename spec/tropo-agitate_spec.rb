@@ -820,6 +820,11 @@ MSG
         command = @tropo_agitate.parse_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
         command.should == { :command => "startcallrecording", :action => "exec", :args => [{ :method => 'POST', :uri => 'http://localhost' }] }
       end
+
+      it 'should invoke the correct Tropo methods' do
+        flexmock($currentCall).should_receive(:startCallRecording).once.with('http://localhost', hsh(:method => 'POST'))
+        response = @tropo_agitate.execute_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
+      end
     end
 
     describe 'redirect' do
