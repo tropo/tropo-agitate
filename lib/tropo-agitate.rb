@@ -470,7 +470,7 @@ class TropoAGItate
     def startcallrecording(options={})
       check_state
 
-      @current_call.startCallRecording options.delete('uri'), options
+      @current_call.startCallRecording options.delete(:uri), options
       AGI_SUCCESS_PREFIX + "0\n"
     rescue => e
       log_error(this_method, e)
