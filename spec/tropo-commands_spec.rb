@@ -32,7 +32,7 @@ describe "TropoAGItate::TropoCommands" do
     @tropo_commands.hangup.should == "200 result=1\n"
   end
 
-  it "should return a valid recognition on ask" do
+  it "should return a valid recognition on ask when :args keys are strings" do
     hash = { 'interpretation' => "94070", 'concept' => "zipcode", 'confidence' => "10.0", 'tag' => nil }
     options = { :command => "ask", :action => "exec", :args => { "timeout" => 3, "prompt" => "hi!"} }
     result = @tropo_commands.ask(options)

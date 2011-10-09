@@ -18,15 +18,15 @@ describe "TropoAGItate" do
   end
 
   before(:each) do
-    $currentCall   = CurrentCall.new
-    $currentApp    = CurrentApp.new
-    $incomingCall  = IncomingCall.new
-    $destination   = nil
-    $caller_id     = nil
-    $timeout       = nil
-    $network       = nil
-    $channel       = nil
-    @tropo_agitate = agitate_factory
+    $currentCall         = CurrentCall.new
+    $currentApp          = CurrentApp.new
+    $incomingCall        = IncomingCall.new
+    $destination         = nil
+    $caller_id           = nil
+    $timeout             = nil
+    $network             = nil
+    $channel             = nil
+    @tropo_agitate       = agitate_factory
   end
 
   it "should create a TropoAGItate object" do
@@ -140,7 +140,7 @@ MSG
         @tropo_agitate.execute_command('ANSWER').should == "200 result=0\n"
       end
     end
-
+    
     describe 'ASYNC AGI BREAK' do
       it 'should be an error' do
         expect { @tropo_agitate.execute_command('ASYNC AGI BREAK') }.to raise_error TropoAGItate::NonsenseCommand
@@ -206,6 +206,15 @@ MSG
 
         result = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
         result.should == "200 result=0\n"
+      end
+      
+      describe 'ASK' do
+        it 'should properly parse the AGI input' do          
+          flexmock($currentCall).should_receive(:ask).once.and_return AskResponse.new
+          
+          result = @tropo_agitate.execute_command("EXEC ask #{ { :prompt => "Which is your favorite muppets character?", :choices => "kermit, fozzie, statler, waldorf, oscar, bert, ernie, swedish chef", :attempts => 3, :timeout => 10}.to_json }")
+          result.should == "200 result={\"concept\":\"zipcode\",\"confidence\":\"10.0\",\"interpretation\":\"94070\",\"tag\":null}\n"
+        end
       end
     end
 
