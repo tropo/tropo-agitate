@@ -11,4 +11,5 @@ group :development do
   gem 'fakeweb'
   gem 'rcov'
   #gem 'em-spec'
+  gem 'ci_reporter'
 end

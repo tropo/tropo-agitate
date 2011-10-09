@@ -18,15 +18,15 @@ describe "TropoAGItate" do
   end
 
   before(:each) do
-    $currentCall   = CurrentCall.new
-    $currentApp    = CurrentApp.new
-    $incomingCall  = IncomingCall.new
-    $destination   = nil
-    $caller_id     = nil
-    $timeout       = nil
-    $network       = nil
-    $channel       = nil
-    @tropo_agitate = agitate_factory
+    $currentCall         = CurrentCall.new
+    $currentApp          = CurrentApp.new
+    $incomingCall        = IncomingCall.new
+    $destination         = nil
+    $caller_id           = nil
+    $timeout             = nil
+    $network             = nil
+    $channel             = nil
+    @tropo_agitate       = agitate_factory
   end
 
   it "should create a TropoAGItate object" do
@@ -140,7 +140,7 @@ MSG
         @tropo_agitate.execute_command('ANSWER').should == "200 result=0\n"
       end
     end
-
+    
     describe 'ASYNC AGI BREAK' do
       it 'should be an error' do
         expect { @tropo_agitate.execute_command('ASYNC AGI BREAK') }.to raise_error TropoAGItate::NonsenseCommand
@@ -206,6 +206,15 @@ MSG
 
         result = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
         result.should == "200 result=0\n"
+      end
+      
+      describe 'ASK' do
+        it 'should properly parse the AGI input' do          
+          flexmock($currentCall).should_receive(:ask).once.and_return AskResponse.new
+          
+          result = @tropo_agitate.execute_command("EXEC ask #{ { :prompt => "Which is your favorite muppets character?", :choices => "kermit, fozzie, statler, waldorf, oscar, bert, ernie, swedish chef", :attempts => 3, :timeout => 10}.to_json }")
+          result.should == "200 result={\"concept\":\"zipcode\",\"confidence\":\"10.0\",\"interpretation\":\"94070\",\"tag\":null}\n"
+        end
       end
     end
 
@@ -639,7 +648,33 @@ MSG
 
     describe 'WAIT FOR DIGIT' do
       it 'should properly parse the AGI input' do
-        pending "This is handled specifically in a lot of cases below.  We need a generic test here as well."
+        response = TropoEvent.new
+        response.name = 'choice'
+        response.value = 53.chr
+        expected_options = { :timeout    => 5,
+                             :choices    => '[1 DIGIT], *, #',
+                             :choiceMode => 'keypad' }
+        flexmock($currentCall).should_receive(:ask).once.with('', expected_options).and_return response
+        @tropo_agitate.execute_command('WAIT FOR DIGIT "5000"').should == "200 result=53\n"
+      end
+
+      it 'should return a correct response on no input' do
+        response = TropoEvent.new
+        response.name = 'timeout'
+        response.value = nil
+        expected_options = { :timeout    => 5,
+                             :choices    => '[1 DIGIT], *, #',
+                             :choiceMode => 'keypad' }
+        flexmock($currentCall).should_receive(:ask).once.with('', expected_options).and_return response
+        @tropo_agitate.execute_command('WAIT FOR DIGIT "5000"').should == "200 result=0\n"
+      end
+
+      it 'should handle an indefinite timeout' do
+        response = TropoEvent.new
+        response.name = 'choice'
+        response.value = 53.chr
+        flexmock($currentCall).should_receive(:ask).once.with('', hsh(:timeout => 7200)).and_return response
+        @tropo_agitate.execute_command('WAIT FOR DIGIT "-1"').should == "200 result=53\n"
       end
     end
   end
@@ -779,6 +814,13 @@ MSG
         command.should == "200 result=0\n"
       end
     end
+
+    describe 'SayDigits' do
+      it 'should work' do
+        flexmock($currentCall).should_receive(:say).once.with("<speak><say-as interpret-as='vxml:digits'>12345</say-as></speak>", {:voice=>"kate"})
+        @tropo_agitate.execute_command('EXEC saydigits 12345').should == "200 result=0\n"
+      end
+    end
   end
 
   describe 'Tropo-specific dialplan application' do
@@ -786,6 +828,11 @@ MSG
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
         command.should == { :command => "startcallrecording", :action => "exec", :args => [{ :method => 'POST', :uri => 'http://localhost' }] }
+      end
+
+      it 'should invoke the correct Tropo methods' do
+        flexmock($currentCall).should_receive(:startCallRecording).once.with('http://localhost', hsh(:method => 'POST'))
+        response = @tropo_agitate.execute_command('EXEC startcallrecording "{"method":"POST","uri":"http://localhost"}"')
       end
     end
 

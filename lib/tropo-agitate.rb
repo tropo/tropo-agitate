@@ -130,18 +130,18 @@ class TropoAGItate
     def ask(options={})
       check_state
 
-      options[:args][:recognizer] = @tropo_recognizer if options[:args]['recognizer'].nil?
-      options[:args][:voice] = @tropo_voice if options[:args]['voice'].nil?
+      options[:recognizer] = @tropo_recognizer if options[:recognizer].nil?
+      options[:voice] = @tropo_voice if options[:voice].nil?
 
       # Check for Asterisk sounds
-      asterisk_sound_url = fetch_asterisk_sound(options[:args]['prompt'])
+      asterisk_sound_url = fetch_asterisk_sound(options[:prompt])
       if asterisk_sound_url
         prompt = asterisk_sound_url
       else
-        prompt = options[:args]['prompt']
+        prompt = options[:prompt]
       end
 
-      response = @current_call.ask prompt, options[:args].symbolize_keys!
+      response = @current_call.ask prompt, options
       if response.value == 'NO_SPEECH' || response.value == 'NO_MATCH'
         result = { :interpretation => response.value }
       else
@@ -651,6 +651,9 @@ class TropoAGItate
     def saydigits(options={})
       check_state
 
+      # Compatibility with Asterisk dialplan app
+      options = {:args => [options]} unless options.is_a? Hash
+
       ssml = "<speak><say-as interpret-as='vxml:digits'>#{options[:args][0]}</say-as></speak>"
       @current_call.say ssml, :voice => @tropo_voice
       AGI_SUCCESS_PREFIX + "0\n"
@@ -839,7 +842,11 @@ class TropoAGItate
 
       if @wait_for_digits_options.nil?
         timeout = options[:args][1].to_i
-        timeout = 1000 if timeout == -1
+
+        # Set timeout to 2 hours, which Tropo says is the longest we can wait.
+        timeout = 2 * 60 * 60 * 1000 if timeout == -1
+
+        # Tropo wants seconds; AGI sent milliseconds
         timeout = timeout / 1000
         response = @current_call.ask('', { :timeout    => timeout,
                                            :choices    => '[1 DIGIT], *, #',
@@ -1009,6 +1016,7 @@ class TropoAGItate
   #
   # @return [Boolean] whether the socket is open or not
   def run
+    sent_hangup = false
     if create_socket_connection
       until @agi_client.closed?
         begin
@@ -1036,6 +1044,13 @@ class TropoAGItate
           show "Error is: #{e}"
           @current_call.hangup
           break
+        ensure
+          unless $currentCall.isActive
+            unless sent_hangup
+              @agi_client.write "HANGUP\n"
+              sent_hangup = true
+            end
+          end
         end
       end
       close_socket
