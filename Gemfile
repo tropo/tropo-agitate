@@ -12,4 +12,5 @@ group :development do
   gem 'rcov'
   #gem 'em-spec'
   gem 'ci_reporter'
+  gem 'rake'
 end
