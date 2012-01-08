@@ -302,7 +302,7 @@ class TropoAGItate
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
           digit = response.value.nil? ? 0 : response.value[0]
-          result = AGI_SUCCESS_PREFIX + digit.to_s + " endpos=1000\n"
+          result = AGI_SUCCESS_PREFIX + digit.ord.to_s + " endpos=1000\n"
         end
       end
       result
@@ -855,7 +855,7 @@ class TropoAGItate
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
       digit = response.value.nil? ? 0 : response.value[0]
-      AGI_SUCCESS_PREFIX + digit.to_s + "\n"
+      AGI_SUCCESS_PREFIX + digit.ord.to_s + "\n"
     rescue => e
       log_error(this_method, e)
     end
