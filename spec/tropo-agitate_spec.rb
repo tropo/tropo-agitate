@@ -885,26 +885,35 @@ MSG
   end
 
   describe 'Tropo compatibility with Asterisk behavior' do
-    it "should handle magic channel variables properly" do
-      command = @tropo_agitate.execute_command('SET CALLERID "<9095551234>"')
-      command.should == "200 result=0\n"
-      command = @tropo_agitate.execute_command('GET VARIABLE CALLERID(num)')
-      command.should == "200 result=1 (9095551234)\n"
+    describe '"magic" channel variables' do
+      it "should handle the various forms for CALLERID properly" do
+        command = @tropo_agitate.execute_command('SET CALLERID "<9095551234>"')
+        command.should == "200 result=0\n"
+        command = @tropo_agitate.execute_command('GET VARIABLE CALLERID(num)')
+        command.should == "200 result=1 (9095551234)\n"
 
-      command = @tropo_agitate.execute_command('SET VARIABLE CALLERIDNAME "John Denver"')
-      command.should == "200 result=0\n"
-      command = @tropo_agitate.execute_command('GET VARIABLE "CALLERIDNAME"')
-      command.should == "200 result=1 (John Denver)\n"
-      command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(name)"')
-      command.should == "200 result=1 (John Denver)\n"
+        command = @tropo_agitate.execute_command('SET VARIABLE CALLERIDNAME "John Denver"')
+        command.should == "200 result=0\n"
+        command = @tropo_agitate.execute_command('GET VARIABLE "CALLERIDNAME"')
+        command.should == "200 result=1 (John Denver)\n"
+        command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(name)"')
+        command.should == "200 result=1 (John Denver)\n"
 
-      command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(all)"')
-      command.should == "200 result=1 (\"John Denver\" <9095551234>)\n"
+        command = @tropo_agitate.execute_command('GET VARIABLE "CALLERID(all)"')
+        command.should == "200 result=1 (\"John Denver\" <9095551234>)\n"
 
-      command = @tropo_agitate.execute_command('SET VARIABLE FOOBAR "green"')
-      command.should == "200 result=0\n"
-      command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
-      command.should == "200 result=1 (green)\n"
+        command = @tropo_agitate.execute_command('SET VARIABLE FOOBAR "green"')
+        command.should == "200 result=0\n"
+        command = @tropo_agitate.execute_command('GET VARIABLE "FOOBAR"')
+        command.should == "200 result=1 (green)\n"
+      end
+
+      it 'should get SIP headers properly' do
+        flexmock($currentCall).should_receive(:getHeader).with('X-MY-HEADER').and_return 'abc'
+        result = @tropo_agitate.execute_command('GET VARIABLE SIP_HEADER(X-MY-HEADER)')
+        result.should == "200 result=1 (abc)\n"
+      end
+
     end
   end
 

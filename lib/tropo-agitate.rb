@@ -1340,6 +1340,8 @@ MSG
         @variables[:callerid][:num]
       when "CALLERID", "CALLERID(all)"
         "\"#{@variables[:callerid][:name]}\" <#{@variables[:callerid][:num]}>"
+      when /SIP_HEADER\((.*)\)/
+        $currentCall.getHeader($1)
       else
         @variables[k] || nil
       end
