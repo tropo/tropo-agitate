@@ -914,6 +914,19 @@ MSG
         result.should == "200 result=1 (abc)\n"
       end
 
+      it 'should set SIP headers properly on dial' do
+        pending "Mock an outbound dial"
+        flexmock($currentCall).should_receive(:getHeader).once.with('X-MY-HEADER').and_return 'abc'
+        result = @tropo_agitate.execute_command('GET VARIABLE SIP_HEADER(X-MY-HEADER)')
+        result.should == "200 result=1 (abc)\n"
+      end
+
+      it 'should set SIP headers properly on transfer' do
+        pending "Mock an outbound dial"
+        flexmock($currentCall).should_receive(:getHeader).once.with('X-MY-HEADER').and_return 'abc'
+        result = @tropo_agitate.execute_command('GET VARIABLE SIP_HEADER(X-MY-HEADER)')
+        result.should == "200 result=1 (abc)\n"
+      end
     end
   end
 
