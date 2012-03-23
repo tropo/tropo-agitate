@@ -199,7 +199,7 @@ class TropoAGItate
       show("______| #{p options} |______" )
       show("______| #{args.count} |______" )
       # Convert Asterisk app_dial inputs to Tropo syntax
-      options[:timeout]  = args.count.eql?(0) ? 30 : args.shift.to_i
+      options[:timeout]  = args[0].empty? ? 30 : args.shift.to_i
 
       # TODO: We may want to provide some compatibility with Asterisk dial flags
       # like m for MOH, A() to play announcement to called party,
