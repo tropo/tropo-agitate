@@ -140,7 +140,7 @@ MSG
         @tropo_agitate.execute_command('ANSWER').should == "200 result=0\n"
       end
     end
-    
+
     describe 'ASYNC AGI BREAK' do
       it 'should be an error' do
         expect { @tropo_agitate.execute_command('ASYNC AGI BREAK') }.to raise_error TropoAGItate::NonsenseCommand
@@ -207,11 +207,11 @@ MSG
         result = @tropo_agitate.execute_command('EXEC recognizer "en-us"')
         result.should == "200 result=0\n"
       end
-      
+
       describe 'ASK' do
-        it 'should properly parse the AGI input' do          
+        it 'should properly parse the AGI input' do
           flexmock($currentCall).should_receive(:ask).once.and_return AskResponse.new
-          
+
           result = @tropo_agitate.execute_command("EXEC ask #{ { :prompt => "Which is your favorite muppets character?", :choices => "kermit, fozzie, statler, waldorf, oscar, bert, ernie, swedish chef", :attempts => 3, :timeout => 10}.to_json }")
           result.should == "200 result={\"concept\":\"zipcode\",\"confidence\":\"10.0\",\"interpretation\":\"94070\",\"tag\":null}\n"
         end
@@ -695,6 +695,11 @@ MSG
       it 'should properly parse the input' do
         command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
         command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','',''] }
+      end
+
+      it 'should set default timeout of 30 if no second argument is passed' do
+        command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
+        command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','30',''] }
       end
 
       it 'should properly parse a telephone number dial string' do

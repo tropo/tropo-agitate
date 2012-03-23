@@ -2,7 +2,7 @@ $LOAD_PATH.unshift(File.dirname(__FILE__))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'agi_config'))
 
-%w(rubygems rcov rspec fakeweb eventmachine flexmock tropo tropo-agitate yaml).each { |lib| require lib }
+%w(rubygems rspec fakeweb eventmachine flexmock tropo tropo-agitate yaml).each { |lib| require lib }
 # em-spec/rspec Out for now since it is not Rspec 2.x compat
 
 RSpec.configure do |config|
