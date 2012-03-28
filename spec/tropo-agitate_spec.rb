@@ -697,9 +697,9 @@ MSG
         command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','',''] }
       end
 
-      it 'should set default timeout of 30 if no second argument is passed' do
+      it 'should set default timeout of 30 seconds if 2nd argement is empty' do
         command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
-        command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','30',''] }
+        command.should == { :action => "exec", :command => "dial", :args => ['sip:jsgoecke@yahoo.com','30',''] }
       end
 
       it 'should properly parse a telephone number dial string' do
