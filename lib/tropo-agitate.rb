@@ -196,8 +196,6 @@ class TropoAGItate
 
       destinations = parse_destinations(destinations.split('&'))
       options = {}
-      show("______| #{p options} |______" )
-      show("______| #{args.count} |______" )
       # Convert Asterisk app_dial inputs to Tropo syntax
       options[:timeout]  = args[0].empty? ? 30 : args.shift.to_i
 
