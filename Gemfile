@@ -9,7 +9,7 @@ group :development do
   gem 'rspec', '>= 2.0.0'
   gem 'flexmock'
   gem 'fakeweb'
-  #gem 'rcov'
+  gem 'rcov'
   #gem 'em-spec'
   gem 'ci_reporter'
   gem 'rake'
