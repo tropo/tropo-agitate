@@ -1,7 +1,6 @@
 %w(rubygems yaml socket json net/http uri).each { |lib| require lib }
 #####
 # This Ruby Script Emulates the Asterisk Gateway Interface (AGI)
-# VERSION = '0.2.0'
 #####
 
 # We patch the Hash class to symbolize our keys
@@ -21,6 +20,8 @@ end
 #########
 # @author Jason Goecke
 class TropoAGItate
+  VERSION = '0.2.3'
+
   attr_accessor :agi_uri, :agi_exten, :commands
 
   AGI_SUCCESS_PREFIX="200 result="
