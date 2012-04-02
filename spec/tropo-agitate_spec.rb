@@ -697,11 +697,6 @@ MSG
         command.should == { :command => "dial", :action => "exec", :args => ['sip:jsgoecke@yahoo.com','',''] }
       end
 
-      it 'should set default timeout of 30 seconds if 2nd argement is empty' do
-        command = @tropo_agitate.parse_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
-        command.should == { :action => "exec", :command => "dial", :args => ['sip:jsgoecke@yahoo.com','30',''] }
-      end
-
       it 'should properly parse a telephone number dial string' do
         result = TropoEvent.new
         result.name = 'success'
@@ -743,6 +738,14 @@ MSG
         @tropo_agitate.execute_command("EXEC Dial \"sip:+14045551234\",\"#{timeout}\",\"\"")
         $currentCall.transferInfo[:options][:timeout].should == timeout
       end
+
+      it 'should set default timeout of 30 seconds if 2nd argement is empty' do
+        result = TropoEvent.new
+        result.name = 'timeout'
+        flexmock($currentCall).should_receive(:transfer).once.with(['sip:jsgoecke@yahoo.com'], hsh(:timeout => 30)).and_return result
+        command = @tropo_agitate.execute_command('EXEC Dial "sip:jsgoecke@yahoo.com","",""')
+      end
+
     end
 
     describe 'AMD' do
