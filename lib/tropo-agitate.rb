@@ -1,7 +1,6 @@
 %w(rubygems yaml socket json net/http uri).each { |lib| require lib }
 #####
 # This Ruby Script Emulates the Asterisk Gateway Interface (AGI)
-# VERSION = '0.2.0'
 #####
 
 # We patch the Hash class to symbolize our keys
@@ -21,6 +20,8 @@ end
 #########
 # @author Jason Goecke
 class TropoAGItate
+  VERSION = '0.2.3'
+
   attr_accessor :agi_uri, :agi_exten, :commands
 
   AGI_SUCCESS_PREFIX="200 result="
@@ -196,9 +197,8 @@ class TropoAGItate
 
       destinations = parse_destinations(destinations.split('&'))
       options = {}
-
       # Convert Asterisk app_dial inputs to Tropo syntax
-      options[:timeout]  = args.shift.to_i if args.count
+      options[:timeout]  = args[0].empty? ? 30 : args.shift.to_i
 
       # TODO: We may want to provide some compatibility with Asterisk dial flags
       # like m for MOH, A() to play announcement to called party,
