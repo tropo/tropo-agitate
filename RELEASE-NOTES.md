@@ -1,6 +1,9 @@
 Tropo AGItate - Release Notes
 =============================
 
+v0.2.4
+* Make AGItate compatible with Ruby 1.9
+
 v0.2.3
 ------
 * Fix bug where dials with an empty duration string would result in a 0-second call (thanks John Dyer for finding/fixing this)
