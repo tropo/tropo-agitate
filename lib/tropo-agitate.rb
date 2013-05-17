@@ -20,7 +20,7 @@ end
 #########
 # @author Jason Goecke
 class TropoAGItate
-  VERSION = '0.2.3'
+  VERSION = '0.2.4'
 
   attr_accessor :agi_uri, :agi_exten, :commands
 
