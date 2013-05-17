@@ -119,6 +119,14 @@ describe "TropoAGItate::TropoCommands" do
     options = ['hey there!']
     @tropo_commands.file(*options).should == "200 result=0 endpos=1000\n"
   end
+
+  it "should support a stream file with no DTMF response" do
+    ask_result = AskResponse.new
+    ask_result.value = nil
+    flexmock(AskResponse).should_receive(:new).once.and_return ask_result
+    options = ['hey there!', '1234567890#']
+    @tropo_commands.file(*options).should == "200 result=0 endpos=1000\n"
+  end
   
   it "should support a stream file with escape digits" do
     options = ['hey there!', '1234567890#']

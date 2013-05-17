@@ -20,7 +20,7 @@ end
 #########
 # @author Jason Goecke
 class TropoAGItate
-  VERSION = '0.2.3'
+  VERSION = '0.2.4'
 
   attr_accessor :agi_uri, :agi_exten, :commands
 
@@ -62,6 +62,14 @@ class TropoAGItate
     # @return nil
     def show(str)
       log "====> #{str} <===="
+    end
+
+    def ascii_for_digit(value)
+      # Assume we have a string containing a series of digits.
+      # This method will pull out the first digit and convert it to a string
+      # representing its ASCII code equivalent.  These extra steps are
+      # required for compability with both Ruby 1.8 and 1.9
+      value[0].ord.to_s
     end
 
     ##
@@ -301,8 +309,8 @@ class TropoAGItate
           response = @current_call.ask prompt, { :choices    => format_escape_digits(escape_digits),
                                                  :choiceMode => 'keypad',
                                                  :timeout    => 0 }
-          digit = response.value.nil? ? 0 : response.value[0]
-          result = AGI_SUCCESS_PREFIX + digit.ord.to_s + " endpos=1000\n"
+          digit = response.value.nil? ? '0' : ascii_for_digit(response.value)
+          result = AGI_SUCCESS_PREFIX + digit + " endpos=1000\n"
         end
       end
       result
@@ -854,8 +862,8 @@ class TropoAGItate
       else
         response = @current_call.ask(@wait_for_digits_options['prompt'], @wait_for_digits_options)
       end
-      digit = response.value.nil? ? 0 : response.value[0]
-      AGI_SUCCESS_PREFIX + digit.ord.to_s + "\n"
+      digit = response.value.nil? ? '0' : ascii_for_digit(response.value)
+      AGI_SUCCESS_PREFIX + digit + "\n"
     rescue => e
       log_error(this_method, e)
     end
@@ -1465,4 +1473,4 @@ def agitate_factory
   agitate
 end
 
-agitate_factory.run if !@tropo_testing
+agitate_factory.run unless @tropo_testing
