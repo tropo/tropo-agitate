@@ -39,13 +39,11 @@ module Tropo
     end
 
     attr_reader :choice
+    attr_accessor :value
 
     def initialize
       @choice = Choice.new
-    end
-
-    def value
-      '94070'
+      @value = '94070'
     end
   end
 
