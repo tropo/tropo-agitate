@@ -1463,4 +1463,4 @@ def agitate_factory
   agitate
 end
 
-agitate_factory.run if !@tropo_testing
+agitate_factory.run unless @tropo_testing
